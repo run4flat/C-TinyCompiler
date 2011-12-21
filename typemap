@@ -1,0 +1,2 @@
+TYPEMAP
+TCCState*   T_PTR

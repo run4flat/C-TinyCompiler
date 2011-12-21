@@ -1,0 +1,14 @@
+Build.PL
+Changes
+lib/TCC.pm
+lib/TCC.xs
+MANIFEST			This list of files
+README
+typemap
+t/00-load.t
+t/100-new-and-destroy.t
+t/101-include.t
+t/102-define.t
+t/manifest.t
+t/pod-coverage.t
+t/pod.t
