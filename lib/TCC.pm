@@ -120,7 +120,7 @@ sub add_include_path {
 	# Make sure the path makes sense:
 	croak("Error including path [$path]: path does not appear to exist")
 		unless -d $path;
-	_add_include_path($self->{_state}, $path);
+	$self->_add_include_path($path);
 	
 	# Croak if anything happened:
 	$self->report_if_error("Error including path [$path]: MESSAGE");
@@ -147,7 +147,7 @@ sub add_sysinclude_path {
 	# Make sure the path makes sense:
 	croak("Error including syspath [$path]: path does not appear to exist")
 		unless -d $path;
-	_add_sysinclude_path($self->{_state}, $path);
+	$self->_add_sysinclude_path($path);
 	
 	# Croak if anything happened:
 	$self->report_if_error("Error including syspath [$path]: MESSAGE");
@@ -242,7 +242,7 @@ sub define {
 		if $self->{has_compiled};
 	
 	# Set the value in the compiler state:
-	_define($self->{_state}, $symbol_name, $set_as);
+	$self->_define($symbol_name, $set_as);
 	$self->{pp_defs}->{$symbol_name} = $set_as;
 	
 	# XXX working here - consider using warnings::register
@@ -339,7 +339,7 @@ the symbol was not defined to begin with.
 sub undefine {
 	my ($self, $symbol_name) = @_;
 	# Remove the value in the compiler state and in the local cache:
-	_undefine($self->{_state}, $symbol_name);
+	$self->_undefine($symbol_name);
 	delete $self->{pp_defs}->{$symbol_name};
 	
 	# Croak if anything happened:
@@ -435,6 +435,8 @@ sub apply_symbols {
 	$self->{applied_symbols}->{$package}++;
 }
 
+require TCC::package;
+
 sub compile {
 	my $self = shift;
 	
@@ -442,14 +444,15 @@ sub compile {
 	croak('This context has already been compiled') if $self->has_compiled;
 	
 	# Apply all packages:
-	for my $package (TCC::package::get_packages(1)) {
+	my @packages = TCC::package::get_packages();
+	for my $package (@packages) {
 		$self->apply_package($package);
 	}
 	
 	eval {
 		# Assemble the code:
 		my $code = $self->{Head} . $self->{Body} . $self->{Foot};
-		_compile($self->{_state}, $code);
+		$self->_compile($code);
 		1;
 	} or do {
 		# We ran into a problem! Report the compiler issue, if known:
@@ -459,13 +462,12 @@ sub compile {
 	};
 	
 	# Apply the compiled symbols after compiling
-	for my $package (TCC::package::get_packages(1)) {
+	for my $package (@packages) {
 		$self->apply_symbols($package);
 	}
 	
 	eval {
-warn "Relocating\n";
-		_relocate($self->{_state});
+		$self->_relocate;
 		1;
 	} or do {
 		# We ran into a problem! Report the relocation issue, if known:
@@ -481,7 +483,15 @@ warn "Relocating\n";
 sub call_function {
 	my $self = shift;
 	my $func_name = shift;
-	_call_function($self->{_state}, $func_name, \@_);
+	eval {
+		_call_function($self->{_state}, $func_name, \@_);
+		1;
+	} or do {
+		my $message = $@;
+		$message =~ s/ at .*\n//;
+		croak($message);
+	};
+	
 }
 
 =head2 todo

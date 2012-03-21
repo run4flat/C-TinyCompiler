@@ -19,13 +19,17 @@ sub apply {
 	# Add function declarations and symbols:
 	$state->code('Head') .= q{
 		double SvNV (SV * sv);
+		int SvIV(SV * sv);
 		void sv_setNV (SV * sv, double val);
 	};
 }
 
-sub apply_sumbols {
+# Retrieve the symbol pointers only once:
+my $symbols = get_symbol_ptrs();
+
+sub apply_symbols {
 	my (undef, $state) = @_;
-	_add_basic_SV_functions($state->{_state});
+	$state->add_symbols(%$symbols);
 }
 
 1;

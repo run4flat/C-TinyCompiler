@@ -23,10 +23,12 @@ sub apply {
 	};
 }
 
+# Retrieve the symbol pointers only once:
+my $symbols = get_symbol_ptrs();
+
 sub apply_symbols {
 	my (undef, $state) = @_;
-warn "Applyg av symbols\n";
-	_add_basic_AV_functions($state->{_state});
+	$state->add_symbols(%$symbols);
 }
 
 1;

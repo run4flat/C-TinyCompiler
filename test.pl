@@ -6,24 +6,26 @@ use strict;
 use warnings;
 
 use blib;
-warn __LINE__, "\n";
 use TCC;
 
-warn __LINE__, "\n";
-
 ############## simple code compilation: 1
-my $context= TCC->new;
-warn __LINE__, "\n";
 use TCC::AV;
-warn __LINE__, "\n";
-$context->code('Body') = q{
+use TCC::SV;
+my $context= TCC->new;
+$context->code('Body') = "#line " . (__LINE__+1) . q{
 	void av_len_test(AV * args) {
-		printf("Length of args is %i\n", av_len(args));
+		printf("you passed in %d arguments\n", av_len(args)+1);
+		
+		double sum = 0;
+		int i;
+		for (i = 0; i <= av_len(args); i++) {
+			SV ** value_ptr = av_fetch(args, i, 0);
+			sum += SvNV(*value_ptr);
+		}
+		printf("Sum of the values is %f\n", sum);
 	}
 };
 
-warn __LINE__, "\n";
 $context->compile;
-warn __LINE__, "\n";
 $context->call_function('av_len_test', 1, 2, 3);
-warn __LINE__, "\n";
+$context->call_function('av_len_test', 1..10);

@@ -5,6 +5,8 @@
 #include "ppport.h"
 #include "libtcc.h"
 
+typedef TCCState TCCStateObj;
+
 /* Error handling should store the message and return to the normal execution
  * order. In other words, croak is inappropriate here. */
 void my_tcc_error_func (void * context, const char * msg ) {
@@ -54,7 +56,7 @@ DESTROY(context)
 
 void
 _add_include_path(state, pathname)
-	TCCState * state
+	TCCStateObj * state
 	const char * pathname
 	CODE:
 		int ret = tcc_add_include_path(state, pathname);
@@ -65,7 +67,7 @@ _add_include_path(state, pathname)
 
 void
 _add_sysinclude_path(state, pathname)
-	TCCState * state
+	TCCStateObj * state
 	const char * pathname
 	CODE:
 		int ret = tcc_add_sysinclude_path(state, pathname);
@@ -75,7 +77,7 @@ _add_sysinclude_path(state, pathname)
 
 void
 _define(state, symbol_name, value)
-	TCCState * state
+	TCCStateObj * state
 	const char * symbol_name
 	const char * value
 	CODE:
@@ -83,7 +85,7 @@ _define(state, symbol_name, value)
 
 void
 _undefine(state, symbol_name)
-	TCCState * state
+	TCCStateObj * state
 	const char * symbol_name
 	CODE:
 		tcc_undefine_symbol(state, symbol_name);
@@ -91,7 +93,7 @@ _undefine(state, symbol_name)
 ############ Compiler ############
 void
 _compile(state, code)
-	TCCState * state
+	TCCStateObj * state
 	const char * code
 	CODE:
 		/* Compile and croak if error */
@@ -99,8 +101,26 @@ _compile(state, code)
 		if (ret != 0) croak("Compile error\n");
 
 void
+add_symbols(state, ...)
+	TCCStateObj * state
+	PREINIT:
+		char * symbol_name;
+		void * symbol_ptr;
+	CODE:
+		/* Make sure we've got an even number of arguments (aside from self) */
+		if (items % 2 == 0) {
+			croak("You must supply key => value pairs to add_symbols\n");
+		}
+		int i;
+		for (i = 1; i < items; i += 2) {
+			symbol_name = SvPV_nolen(ST(i));
+			symbol_ptr = INT2PTR(void*, SvIV(ST(i+1)));
+			tcc_add_symbol(state, symbol_name, symbol_ptr);
+		}
+
+void
 _relocate(state)
-	TCCState * state
+	TCCStateObj * state
 	CODE:
 		/* Relocate and croak if error */
 		int ret = tcc_relocate(state);
