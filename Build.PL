@@ -5,6 +5,7 @@ use Module::Build;
 use Devel::PPPort;
 
 #### --( Make sure we can find libtcc )-- ####
+# Consider using Devel::CheckLib for this:
 
 my @dirs = qw(
 /home/visitors/dcmertens

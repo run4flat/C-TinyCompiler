@@ -12,6 +12,7 @@ void my_tcc_error_func (void * context, const char * msg ) {
 	hv_store((HV*)context, "error_message", 13, newSVpv(msg, 0), 0);
 }
 
+typedef void (*my_func_caller_ptr)(AV*);
 
 MODULE = TCC           PACKAGE = TCC
 
@@ -48,7 +49,7 @@ DESTROY(context)
 
 ############ Preprocessor ############
 
-/* The next two are pretty much direct copies of each other */
+# The next two are pretty much direct copies of each other
 
 void
 _add_include_path(state, pathname)
@@ -87,3 +88,35 @@ _undefine(state, symbol_name)
 		tcc_undefine_symbol(state, symbol_name);
 
 ############ Compiler ############
+void
+_compile(state, code)
+	TCCState * state
+	const char * code
+	CODE:
+		/* Set the output state to in-memory compilation */
+		tcc_set_output_type(state, TCC_OUTPUT_MEMORY);
+		/* Compile and croak if error */
+		int ret = tcc_compile_string(state, code);
+		if (ret != 0) croak("Compile error\n");
+
+void
+_relocate(state)
+	TCCState * state
+	CODE:
+		/* Relocate and croak if error */
+		int ret = tcc_relocate(state);
+		if (ret < 0) croak("Relocation error\n");
+
+############ Perl API ############
+void
+_call_function(state, func_name, args)
+	TCCState * state
+	const char * func_name
+	AV * args
+	CODE:
+		/* Get a pointer to the function */
+		my_func_caller_ptr p_func
+			= (my_func_caller_ptr)tcc_get_symbol(state, func_name);
+		/* Call it with the array of args */
+		p_func(args);
+		

@@ -44,7 +44,8 @@ stages. Those events are creation, compilation, and destruction. Between
 creation and compilation you can do many things to the compiler context to
 prepare it for compilation, like adding library paths, setting and unsetting
 C<#define>s, and adding symbols. After compilation (and relocation), you can
-retrieve symbols, which is how you get at the code that you just compiled.
+retrieve symbols, which is how you get at the code or globals that you just
+compiled.
 
 =head2 new
 
@@ -55,7 +56,8 @@ There are certain things that you probably didn't mean to do. For these, you can
 have the compiler croak, spit out a warning, or simply ignore and handle
 silently. These include:
 
-working here - this needs to be clarified
+working here - this needs to be clarified, and it should probably use the
+warnings system instead.
 
 =over
 
@@ -67,6 +69,8 @@ value is CROAK
 =back
 
 =cut
+
+my %is_valid_location = map { $_ => 1 } qw(Head Body Foot);
 
 sub new {
 	my $class = shift;
@@ -80,7 +84,7 @@ sub new {
 	my $self = _new;
 	
 	# Add some additional stuff to the context:
-	$self->{prepend} = '';
+	$self->{$_} = '' foreach keys %is_valid_location;
 	$self->{error_message} = '';
 	$self->{has_compiled} = 0;
 	$self->{has_relocated} = 0;
@@ -164,7 +168,7 @@ gives similar results as having this at the top of your C code:
 
  #define DEBUG_PRINT_INT(val) printf("For " #val ", got %d\n", val)
 
-Normally in C code, you might has such a definition within a C<#ifdef> block
+Normally in C code, you might have such a definition within a C<#ifdef> block
 like this:
 
  #ifdef DEBUG
@@ -342,19 +346,172 @@ sub undefine {
 	$self->report_if_error("Error undefining preprocessor symbol [$symbol_name]: MESSAGE");
 }
 
+=head2 code
+
+This lvalue sub lets you get, set, append to, and otherwise modify the contents
+of the code in each of three regions. Any value is allowed so long as the
+compile-phase can retrieve a useful string. This means that you can even set
+the different code sections to be objects.
+
+The location is the first argument and is a string, so the convention might look
+something like this:
+
+ $context->code('Head') = q{
+     double my_dsum(double, double);
+ });
+
+though I generally recommend that you append to each section rather than
+overwriting. To append to the Body section, for example, you would say:
+
+ $context->code('Body') .= q{
+     double my_dsum(double a, double b) {
+         return a+b;
+     }
+ });
+
+You can even hammer on these sections with a regular expression:
+
+ $context->code('Head') =~ s/foo/bar/g;
+
+Valid locations include:
+
+=over
+
+=item Head
+
+Should come before any function definitions. Appropriate for function and global
+variable declarations.
+
+=item Body
+
+Should contain function definitions.
+
+=item Foot
+
+Should come after function definitions. I'm not actually sure what should go
+here, but I thought it might come in handy. :-)
+
+=back
+
+You can use whichever form of capitalization you like for the sections, so
+C<head>, C<Head>, and C<HEAD> are all valid.
+
+=cut
+
+# Valid locations are defined in %is_valid_location, created near the
+# constructor.
+
+sub code :lvalue {
+	my ($self, $location) = @_;
+	# Canonicalize the location:
+	$location = ucfirst lc $location;
+	
+	# Make sure they supplied a meaningful location:
+	croak("Unknown location $location; must be one of "
+		. join(', ', keys %is_valid_location))
+			unless $is_valid_location{$location};
+	
+	$self->{$location};
+}
+
+=head2 compile
+
+Concatenates the text of the three code sections, jit-compiles them, and
+relocates the code so that symbols can be retrieved.
+
+=cut
+
+sub apply_package {
+	my ($self, $package) = @_;
+	return if $self->{applied_package}->{$package};
+	$package->apply($self);
+	$self->{applied_package}->{$package}++;
+}
+
+sub apply_symbols {
+	my ($self, $package) = @_;
+	return if $self->{applied_symbols}->{$package};
+	$package->apply_symbols($self);
+	$self->{applied_symbols}->{$package}++;
+}
+
+sub compile {
+	my $self = shift;
+	
+	# Make sure we haven't already compiled with this context:
+	croak('This context has already been compiled') if $self->has_compiled;
+	
+	# Apply all packages:
+	for my $package (TCC::package::get_packages(1)) {
+		$self->apply_package($package);
+	}
+	
+	eval {
+		# Assemble the code:
+		my $code = $self->{Head} . $self->{Body} . $self->{Foot};
+		_compile($self->{_state}, $code);
+		1;
+	} or do {
+		# We ran into a problem! Report the compiler issue, if known:
+		$self->report_if_error("Unable to compile: MESSAGE");
+		# Report an unknown compiler issue if not known:
+		croak("Unable to compile for unknown reasons");
+	};
+	
+	# Apply the compiled symbols after compiling
+	for my $package (TCC::package::get_packages(1)) {
+		$self->apply_symbols($package);
+	}
+	
+	eval {
+warn "Relocating\n";
+		_relocate($self->{_state});
+		1;
+	} or do {
+		# We ran into a problem! Report the relocation issue, if known:
+		$self->report_if_error("Unable to relocate: MESSAGE");
+		# Report an unknown relocation issue if not known:
+		croak("Unable to relocate for unknown reasons");
+	};
+	
+	# Finish by setting the "compiled" flag:
+	$self->{has_compiled} = 1;
+}
+
+sub call_function {
+	my $self = shift;
+	my $func_name = shift;
+	_call_function($self->{_state}, $func_name, \@_);
+}
+
 =head2 todo
 
 These are the functions I would like to create:
 
-sub append_to_compile
-sub get_text_to_compile
-sub compile
+# executes a given function with the given args. note that the function must
+# properly unpack the SV arguments.
+sub eval_function(args) 
+
+# Not sure about this one, mostly due to reference counting issues.
+# uses newxs to add function to Perl package
+sub install_function('Foo:Bar::func')
+
+=cut
+
+=head2 has_compiled
+
+An introspection method to check if the context has compiled it code or not. You
+are still allowed to modify the content of your code sections after compilation,
+but you will not be able to recompile it.
 
 =cut
 
 sub has_compiled {
-	die "not yet implemented";
+	my $self = shift;
+	return $self->{has_compiled};
 }
+
+# working here - consider using namespace::clean
 
 =head1 AUTHOR
 
