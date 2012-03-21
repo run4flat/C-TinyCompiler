@@ -3,6 +3,6 @@ MYMETA.json
 MYMETA.yml
 _build/
 blib/
-lib/TCC.c
-lib/TCC.o
+.c
+.o
 ppport.h
