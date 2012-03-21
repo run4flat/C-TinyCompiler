@@ -1,4 +1,4 @@
-#!perl
+#!perl -T
 # A test to check that the code setters/getters work correctly
 
 use 5.006;
@@ -20,3 +20,4 @@ $first_context->code('Body') = q{
 
 eval {$first_context->compile};
 is($@, '', "Compiling simple code works");
+

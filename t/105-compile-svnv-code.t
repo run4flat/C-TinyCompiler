@@ -1,27 +1,37 @@
-#!perl
+#!perl -T
 # A test to check that the code setters/getters work correctly
 
 use 5.006;
 use strict;
 use warnings;
-use Test::More tests => 1;
+use Test::More tests => 3;
 
 use TCC;
-
-############## simple code compilation: 1
-my $context= TCC->new;
 use TCC::AV;
-use TCC::SV::NV;
-# add nv functions:
-$context->add_basic_AV_functions;
-$context->add_basic_SV_nv_functions;
+use TCC::SV;
+
+# The code to compile:
+my $context= TCC->new;
 $context->code('Body') = q{
-	void nv_test(AV * args) {
-		printf("Length of args is %i\n", av_len(args));
+	void test_func(AV * args) {
+		
+		double sum = 0;
+		int i;
+		for (i = 1; i <= av_len(args); i++) {
+			sum += SvNV(*(av_fetch(args, i, 0)));
+		}
+		
+		SV * to_return = (*(av_fetch(args, 0, 0)));
+		sv_setnv(to_return, sum);
 	}
 };
 
+############## simple code compilation: 3
 eval {$context->compile};
 is($@, '', "Compiling simple code works");
 
-$context->call_function('nv_test', 1, 2, 3);
+my $return;
+eval {$context->call_function('test_func', $return, 1, 2, 3)};
+is($@, '', 'Calling a compiled function does not croak');
+is($return, 6, "Function returns the correct value");
+
