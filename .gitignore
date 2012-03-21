@@ -3,6 +3,7 @@ MYMETA.json
 MYMETA.yml
 _build/
 blib/
-.c
-.o
+*.c
+*.o
 ppport.h
+*~
