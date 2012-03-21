@@ -20,9 +20,9 @@ _add_basic_AV_functions(state)
 	TCCState * state
 	CODE:
 		/* Really simple stuff for now */
-		printf("adding av_fetch\n");
+		printf("adding av_fetch\n"); fflush(stdout);
 		tcc_add_symbol(state, "av_fetch", my_av_fetch);
-		printf("adding av_len\n");
+		printf("adding av_len\n"); fflush(stdout);
 		tcc_add_symbol(state, "av_len", my_av_len);
-		printf("done\n");
+		printf("done\n"); fflush(stdout);
 

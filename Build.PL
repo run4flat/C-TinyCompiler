@@ -8,6 +8,7 @@ use Devel::PPPort;
 # Consider using Devel::CheckLib for this:
 
 my @dirs = qw(
+/usr/local
 /home/visitors/dcmertens
 );
 

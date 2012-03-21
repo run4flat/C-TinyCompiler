@@ -30,6 +30,7 @@ _new()
 			croak("Unable to create TCC compiler state!\n");
 		}
 		tcc_set_error_func(state, RETVAL, my_tcc_error_func);
+		tcc_set_output_type(state, TCC_OUTPUT_MEMORY);
 		
 		/* Add the state to the context */
 		hv_store(RETVAL, "_state", 6, newSViv(PTR2IV(state)), 0);
@@ -93,8 +94,6 @@ _compile(state, code)
 	TCCState * state
 	const char * code
 	CODE:
-		/* Set the output state to in-memory compilation */
-		tcc_set_output_type(state, TCC_OUTPUT_MEMORY);
 		/* Compile and croak if error */
 		int ret = tcc_compile_string(state, code);
 		if (ret != 0) croak("Compile error\n");
