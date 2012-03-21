@@ -3,7 +3,6 @@
 #include "XSUB.h"
 
 #include "ppport.h"
-#include "libtcc.h"
 
 void my_sv_setnv (SV * sv, NV num) {
 	sv_setnv(sv, num);

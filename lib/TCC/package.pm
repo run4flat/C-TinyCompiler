@@ -9,7 +9,8 @@ sub get_packages {
 		$package_list = shift;
 	}
 	else {
-		$package_list = (caller(1))[10]->{TCC_packages};
+		my $hashref = (caller(1))[10];
+		$package_list = $hashref->{TCC_packages} if defined $hashref;
 	}
 	$package_list ||= '';
 	return split /[|]/, $package_list;

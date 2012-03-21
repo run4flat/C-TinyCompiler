@@ -3,7 +3,6 @@
 #include "XSUB.h"
 
 #include "ppport.h"
-#include "libtcc.h"
 
 SV ** my_av_fetch(AV * array, I32 index, I32 lvalue) {
 	return av_fetch(array, index, lvalue);
