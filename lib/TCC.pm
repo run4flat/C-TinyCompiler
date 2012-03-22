@@ -353,7 +353,7 @@ something like this:
 
  $context->code('Head') = q{
      double my_dsum(double, double);
- });
+ };
 
 though I generally recommend that you append to each section rather than
 overwriting. To append to the Body section, for example, you would say:
@@ -362,7 +362,7 @@ overwriting. To append to the Body section, for example, you would say:
      double my_dsum(double a, double b) {
          return a+b;
      }
- });
+ };
 
 You can even hammer on these sections with a regular expression:
 
@@ -391,6 +391,10 @@ here, but I thought it might come in handy. :-)
 You can use whichever form of capitalization you like for the sections, so
 C<head>, C<Head>, and C<HEAD> are all valid.
 
+If you have a compiler error, line numbers will be meaningless if you do not
+tell the compiler the line on which the code is run. To do this properly, use
+L</line_number>, discussed below.
+
 =cut
 
 # Valid locations are defined in %is_valid_location, created near the
@@ -409,10 +413,47 @@ sub code :lvalue {
 	$self->{$location};
 }
 
+=head2 line_number
+
+If you run into a compiler issue with your code, you will get an error that
+looks like this:
+
+ Unable to compile at <string>:13: error: ',' expected (got "{")
+
+It would be nice if this could tell you the line in your Perl script at which
+the problematic code resides. To achieve this, you would say something like:
+
+ $context->code('Body') .= '#line ' . (__LINE__+1) . ' "' . __FILE__ . q{"
+     ... code goes here ...
+ };
+
+That is ugly. Instead, you can use C<TCC::line_number> to perform this for you:
+
+ $context->code('Body') .= TCC::line_number(__LINE__) . q{
+     ... code goes here ...
+ };
+
+Still not awesome, but at least a little better.
+
+=cut
+
+sub line_number {
+	my ($line) = @_;
+	# The line needs to be incremented by one for the bookkeeping to work
+	$line++;
+	# Get the source filename using caller()
+	my (undef, $filename) = caller;
+	# Escape backslashes:
+	$filename =~ s/\\/\\\\/g;
+	return "#line $line \"$filename\"";
+}
+
 =head2 compile
 
-Concatenates the text of the three code sections, jit-compiles them, and
-relocates the code so that symbols can be retrieved.
+Concatenates the text of the three code sections, jit-compiles them, appies all
+symbols from the included packages, and relocates the code so that symbols can
+be retrieved. In short, this is the transformative step that converts your code
+from ascii into machine.
 
 working here - document error messages
 
@@ -430,9 +471,13 @@ sub compile {
 		$self->_compile($code);
 		1;
 	} or do {
-		# We ran into a problem! Report the compiler issue, if known:
-		$self->report_if_error("Unable to compile: MESSAGE");
-		# Report an unknown compiler issue if not known:
+		# We ran into a problem! Report the compiler issue (as reported from
+		# the compiled line) if known:
+		my $message = $self->get_error_message;
+		die "Unable to compile at $message\n" if $message;
+		
+		# Report an unknown compiler issue from the compile call line if not
+		# known:
 		croak("Unable to compile for unknown reasons");
 	};
 	
@@ -595,7 +640,7 @@ sub has_compiled {
 	return $self->{has_compiled};
 }
 
-# working here - consider using namespace::clean
+# working here - consider using namespace::clean?
 
 =head1 Writing Functions
 

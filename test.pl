@@ -10,7 +10,7 @@ use TCC;
 
 ############## simple code compilation: 1
 my $context= TCC->new(packages => ['::Perl::AV', '::Perl::SV']);
-$context->code('Body') = "#line " . (__LINE__+1) . q{
+$context->code('Body') = "#line " . (__LINE__+1) . ' "' . __FILE__ . q{"
 	void av_len_test(AV * args) {
 		printf("you passed in %d arguments\n", av_len(args)+1);
 		
@@ -18,9 +18,13 @@ $context->code('Body') = "#line " . (__LINE__+1) . q{
 		int i;
 		for (i = 0; i <= av_len(args); i++) {
 			SV ** value_ptr = av_fetch(args, i, 0);
+			if (value_ptr == 0) printf("Unable to retrieve value %d", i);
 			sum += SvNV(*value_ptr);
 		}
 		printf("Sum of the values is %f\n", sum);
+		
+		SV ** value_ptr = av_fetch(args, 8, 0);
+		if (value_ptr == 0) printf("Unable to retrieve value %d\n", 8);
 	}
 };
 
