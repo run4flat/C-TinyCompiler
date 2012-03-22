@@ -12,7 +12,7 @@ int my_av_len(AV * av) {
 	return av_len(av);
 }
 
-MODULE = TCC::AV           PACKAGE = TCC::AV
+MODULE = TCC::Perl::AV           PACKAGE = TCC::Perl::AV
 
 HV *
 get_symbol_ptrs()

@@ -1,24 +1,25 @@
-package TCC::AV;
+package TCC::Perl::SV;
 use strict;
 use warnings;
-use base 'TCC::package';
+use parent 'TCC::package';
 
 BEGIN {
 	our $VERSION = '0.01';
 	use XSLoader;
-	XSLoader::load 'TCC::AV', $VERSION;
+	XSLoader::load 'TCC::Perl::SV', $VERSION;
 }
 
 sub apply {
 	my (undef, $state) = @_;
 	
 	# Make sure we have the necessary typedefs:
-	$state->apply_packages('TCC::Typedefs');
+	$state->apply_packages('TCC::Perl::Typedefs');
 	
 	# Add function declarations and symbols:
 	$state->code('Head') .= q{
-		int av_len (AV * av);
-		SV ** av_fetch (AV * av, int key, int lval);
+		double SvNV (SV * sv);
+		int SvIV(SV * sv);
+		void sv_setNV (SV * sv, double val);
 	};
 }
 

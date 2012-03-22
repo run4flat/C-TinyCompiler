@@ -1,4 +1,4 @@
-package TCC::Typedefs;
+package TCC::Perl::Typedefs;
 use strict;
 use warnings;
 use parent 'TCC::package';

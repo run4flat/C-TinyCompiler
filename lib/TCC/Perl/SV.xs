@@ -16,7 +16,7 @@ int my_SvIV (SV * scalar) {
 	return SvIV(scalar);
 }
 
-MODULE = TCC::SV           PACKAGE = TCC::SV
+MODULE = TCC::Perl::SV           PACKAGE = TCC::Perl::SV
 
 HV *
 get_symbol_ptrs()

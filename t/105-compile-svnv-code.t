@@ -9,7 +9,7 @@ use Test::More tests => 3;
 use TCC;
 
 # The code to compile:
-my $context= TCC->new(packages => ['::AV', '::SV']);
+my $context= TCC->new(packages => ['::Perl::AV', '::Perl::SV']);
 $context->code('Body') = '#line ' . (__LINE__ + 1) . q{
 	void test_func(AV * inputs, AV * outputs) {
 		
