@@ -52,21 +52,13 @@ compiled.
 Creates a new Tiny C Compiler context. All compile behavior needs to be run in
 a context, so before creating any new code, you'll need to create a context.
 
-There are certain things that you probably didn't mean to do. For these, you can
-have the compiler croak, spit out a warning, or simply ignore and handle
-silently. These include:
+Arguments are specified as key => value pairs. At the moment, the only key is
+the C<packages> key, which lets you specify a list of packages to apply to the
+compiler context. The value associated with that key should be an anonymous
+array (or just a string if you have only one package to include). For example,
 
-working here - this needs to be clarified, and it should probably use the
-warnings system instead.
-
-=over
-
-=item redefine
-
-when you try to redefine a preprocessor symbol that already exists; default
-value is CROAK
-
-=back
+ my $context = TCC->new(packages => '::Perl::SV');
+ my $context = TCC->new(packages => ['::Perl::SV', ::Perl::AV']);
 
 =cut
 
@@ -76,28 +68,32 @@ sub new {
 	my $class = shift;
 	croak("Error creating new TCC context: options must be key/value pairs")
 		unless @_ % 2 == 0;
-	
-	# Handle the arguments.
+	# Unpack the arguments.
 	my %args = @_;
 	
-	# Create a new context:
-	my $self = _new;
+	# Create a new context object:
+	my $self = bless _new;
 	
 	# Add some additional stuff to the context:
 	$self->{$_} = '' foreach keys %is_valid_location;
 	$self->{error_message} = '';
 	$self->{has_compiled} = 0;
-	$self->{has_relocated} = 0;
 	
-	# Return this constructed hash
-	return bless $self;
+	# Process the packages key:
+	if (my $packages = $args{packages}) {
+		$packages = [$packages] unless ref($packages);
+		$self->apply_packages(@$packages);
+	}
+	
+	# Return the prepared object:
+	return $self;
 }
 
 =head2 add_include_path, add_sysinclude_path
 
 Adds an include path or system include path to the compiler context. The first
 is similar to the -I command line argument that you get with most (all?)
-compilers. (I'm not sure how to set the sytem include paths with gcc or any
+compilers. (I'm not sure how to set the system include paths with gcc or any
 other compiler.) By specifying an include path, you can use statements like
 
  #include "my_header.h"
@@ -111,7 +107,7 @@ Frankly, I'm not sure how often you'll want to fiddle with the sysinclude paths.
 In general, you should probably stick with just adding to the normal include
 path.
 
-All include paths must be set before calling C<compile_string>.
+All include paths must be set before calling L</compile>.
 
 =cut
 
@@ -173,7 +169,6 @@ like this:
 
  #ifdef DEBUG
  #    define DEBUG_PRINT_INT(val) printf("For " #val ", got %d\n", val)
- #
  #else
  #    define DEBUG_PRINT_INT(val)
  #endif
@@ -181,7 +176,7 @@ like this:
 Since you control what gets defined with your Perl code, this can be changed to
 something like this:
 
- if ($context->{is_debuggin}) {
+ if ($context->{is_debugging}) {
      $context->define('DEBUG_PRINT_INT(val)'
          , 'printf("For " #val ", got %d\n", val));
  }
@@ -190,15 +185,15 @@ something like this:
  }
 
 The difference between these two is that in the former all the macro
-definitions are parsed by libtcc, whereas in the latter all the Perl code is
-parsed by the Perl parser and libtcc only deals with definitions when the
+definitions are parsed by C<libtcc>, whereas in the latter all the Perl code is
+parsed by the Perl parser and C<libtcc> only deals with definitions when the
 C<define> function gets called. It's probably marginally faster to simply
-include C<#ifdef> and C<#define> in your C code, but you can on retrieve the
+include C<#ifdef> and C<#define> in your C code, but you can retrieve the
 preset value of a preprocessor symbol in your Perl code if you use the C<define>
-method. It's a tradeoff between flexibility and speed.
+method. It's a fairly minor tradeoff between flexibility and speed.
 
 If you do not provide a symbol, an empty string will be used instead. This
-varies slightly form the libtcc usage, in which case if you provide a null
+varies slightly form the C<libtcc> usage, in which case if you provide a null
 pointer, the string "1" is used. Thus, if you want a value of "1", you will need
 to explicitly do that.
 
@@ -419,23 +414,9 @@ sub code :lvalue {
 Concatenates the text of the three code sections, jit-compiles them, and
 relocates the code so that symbols can be retrieved.
 
+working here - document error messages
+
 =cut
-
-sub apply_package {
-	my ($self, $package) = @_;
-	return if $self->{applied_package}->{$package};
-	$package->apply($self);
-	$self->{applied_package}->{$package}++;
-}
-
-sub apply_symbols {
-	my ($self, $package) = @_;
-	return if $self->{applied_symbols}->{$package};
-	$package->apply_symbols($self);
-	$self->{applied_symbols}->{$package}++;
-}
-
-require TCC::package;
 
 sub compile {
 	my $self = shift;
@@ -443,14 +424,8 @@ sub compile {
 	# Make sure we haven't already compiled with this context:
 	croak('This context has already been compiled') if $self->has_compiled;
 	
-	# Apply all packages:
-	my @packages = TCC::package::get_packages();
-	for my $package (@packages) {
-		$self->apply_package($package);
-	}
-	
+	# Assemble the code:
 	eval {
-		# Assemble the code:
 		my $code = $self->{Head} . $self->{Body} . $self->{Foot};
 		$self->_compile($code);
 		1;
@@ -461,11 +436,12 @@ sub compile {
 		croak("Unable to compile for unknown reasons");
 	};
 	
-	# Apply the compiled symbols after compiling
-	for my $package (@packages) {
-		$self->apply_symbols($package);
+	# Apply the pre-compiled symbols:
+	while (my ($package, $options) = each %{$self->{applied_package}}) {
+		$package->apply_symbols($self, @$options);
 	}
-	
+
+	# Relocate
 	eval {
 		$self->_relocate;
 		1;
@@ -480,31 +456,129 @@ sub compile {
 	$self->{has_compiled} = 1;
 }
 
+=head2 apply_packages
+
+Adds the given packages to this compiler context. The names should be the
+package names.
+
+ $context->apply_packages qw(TCC::Perl::SV TCC::Perl::AV);
+
+The C<TCC> is optional, so this is equivalent to:
+
+ $context->apply_packages qw(::Perl::SV ::Perl::AV);
+
+Options are package-specific strings and should be specified after the
+package name and enclosed by parentheses:
+
+ $context->apply_packages qw(::Perl::SV(most) ::Perl::AV(basic))
+
+You can call this function multiple times with different package names. However,
+a package can only be applied once, even if you specify different package
+options. Thus, the following will not work:
+
+ $context->apply_packages '::Perl::SV(basic)';
+ $context->apply_packages '::Perl::SV(refs)';
+
+Instead, you should combine these options like so:
+
+ $context->apply_packages '::Perl::SV(basic, refs)';
+
+B<Note> that you can put spaces between the package name, the parentheses, and
+the comma-delimited options, but C<qw()> will not do what you mean in that case.
+In other words, this could trip you up:
+
+ $context->apply_packages qw( ::Perl::SV(basic, refs) );
+
+and it will issue a warning resembling this:
+
+ Error: right parenthesis expected in package specification '::Perl::SV(basic,'
+
+Again, these are OK:
+
+ $context->apply_packages qw( ::Perl::SV(basic) );
+ $context->apply_packages '::Perl::SV (basic)';
+
+but this is an error:
+
+ $context->apply_packages qw( ::Perl::SV (basic) );
+
+and will complain saying:
+
+ Error: package specification cannot start with parenthesis: '(basic)'
+     Is this supposed to be an option for the previous package?
+
+=cut
+
+sub apply_packages {
+	my ($self, @packages) = @_;
+	
+	# Run through all the packages and apply them:
+	PACKAGE: for my $package_spec (@packages) {
+		# Check for errors:
+		croak("Error: right parenthesis expected in package specification '$package_spec'")
+			if ($package_spec =~ /\(/ and $package_spec !~ /\)/);
+		croak("Error: package specification cannot start with parenthesis: '$package_spec'\n"
+			. "\tIs this supposed to be an option for the previous package?")
+			if ($package_spec =~ /^\s*\(/);
+		
+		# strip spaces
+		$package_spec =~ s/\s//g;
+		# Add TCC if it starts with ::
+		$package_spec = 'TCC' . $package_spec
+			if index ($package_spec, ':') == 0;
+		# Pull out the package options:
+		my @options;
+		if ($package_spec =~ s/\((.+)\)$//) {
+			my $options = $1;
+			@options = split /,/, $options;
+		}
+		
+		# Skip if already applied
+		next PACKAGE if $self->{applied_package}->{$package_spec};
+		
+		# Apply the package, storing the options (for use later under the
+		# symbol application):
+		eval "use $package_spec";
+		croak($@) if $@;
+		$package_spec->apply($self, @options);
+		$self->{applied_package}->{$package_spec} = [@options];
+	}
+}
+
+
+=head2 call_function
+
+This takes the name of the compiled function and a list of arguments and calls
+the function. The function should be of the following form:
+
+ void my_func (AV * input, AV * output);
+
+The input array contains a direct reference to the values passed to the function
+(which allows you to modify those variables in-place). The output array is
+initially empty, but anything that you put into it will be returned.
+
+For more details, see the section L</Writing Functions> below.
+
+=cut
+
 sub call_function {
 	my $self = shift;
 	my $func_name = shift;
+	my @to_return;
 	eval {
-		_call_function($self->{_state}, $func_name, \@_);
+		$self->_call_function($func_name, \@_, \@to_return);
 		1;
 	} or do {
 		my $message = $@;
 		$message =~ s/ at .*\n//;
 		croak($message);
 	};
-	
+	return @to_return;
 }
 
 =head2 todo
 
 These are the functions I would like to create:
-
-# executes a given function with the given args. note that the function must
-# properly unpack the SV arguments.
-sub eval_function(args) 
-
-# Not sure about this one, mostly due to reference counting issues.
-# uses newxs to add function to Perl package
-sub install_function('Foo:Bar::func')
 
 =cut
 
@@ -522,6 +596,10 @@ sub has_compiled {
 }
 
 # working here - consider using namespace::clean
+
+=head1 Writing Functions
+
+Working here. Sorry. :-)
 
 =head1 AUTHOR
 

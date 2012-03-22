@@ -2,7 +2,6 @@ package TCC::AV;
 use strict;
 use warnings;
 use base 'TCC::package';
-use TCC::Typedefs;
 
 BEGIN {
 	our $VERSION = '0.01';
@@ -14,7 +13,7 @@ sub apply {
 	my (undef, $state) = @_;
 	
 	# Make sure we have the necessary typedefs:
-	$state->apply_package('TCC::Typedefs');
+	$state->apply_packages('TCC::Typedefs');
 	
 	# Add function declarations and symbols:
 	$state->code('Head') .= q{

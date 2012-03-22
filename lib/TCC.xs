@@ -14,7 +14,7 @@ void my_tcc_error_func (void * context, const char * msg ) {
 	hv_store((HV*)context, "error_message", 13, newSVpv(msg, 0), 0);
 }
 
-typedef void (*my_func_caller_ptr)(AV*);
+typedef void (*my_func_caller_ptr)(AV*, AV*);
 
 MODULE = TCC           PACKAGE = TCC
 
@@ -128,14 +128,15 @@ _relocate(state)
 
 ############ Perl API ############
 void
-_call_function(state, func_name, args)
-	TCCState * state
+_call_function(state, func_name, input, output)
+	TCCStateObj * state
 	const char * func_name
-	AV * args
+	AV * input
+	AV * output
 	CODE:
 		/* Get a pointer to the function */
 		my_func_caller_ptr p_func
 			= (my_func_caller_ptr)tcc_get_symbol(state, func_name);
-		/* Call it with the array of args */
-		p_func(args);
+		/* Call it with the arrays of inputs and outputs */
+		p_func(input, output);
 		
