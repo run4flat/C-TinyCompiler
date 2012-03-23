@@ -1,4 +1,4 @@
-package TCC::Perl::FullAPI;
+package TCC::Perl;
 use strict;
 use warnings;
 use parent 'TCC::package';
