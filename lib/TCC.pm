@@ -582,8 +582,9 @@ sub apply_packages {
 		next PACKAGE if $self->{applied_package}->{$package_spec};
 		
 		# Apply the package, storing the options (for use later under the
-		# symbol application):
-		eval "use $package_spec";
+		# symbol application). All this mumbo jumbo is used to ensure that
+		# we get proper line number reporting if the package cannot be use'd.
+		eval '#line ' . (__LINE__-1) . ' "' . __FILE__ . "\"\nuse $package_spec";
 		croak($@) if $@;
 		$package_spec->apply($self, @options);
 		$self->{applied_package}->{$package_spec} = [@options];
