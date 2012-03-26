@@ -793,7 +793,7 @@ L<http://search.cpan.org/dist/TCC/>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011 David Mertens.
+Copyright 2011-2012 Northwestern University
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
