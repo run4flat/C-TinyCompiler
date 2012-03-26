@@ -22,7 +22,7 @@ sub apply {
 	my (undef, $state) = @_;
 	
 	# Add Perl's CORE directory to the compiler's list of includes:
-	$state->add_include_path($_) foreach ($core_dir, @local_inc);
+	$state->add_include_paths($core_dir, @local_inc);
 	
 	# Add function declarations and symbols:
 	$state->code('Head') .= TCC::line_number(__LINE__) . q{

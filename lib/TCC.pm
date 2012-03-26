@@ -89,12 +89,19 @@ sub new {
 	return $self;
 }
 
-=head2 add_include_path, add_sysinclude_path
+=head2 add_include_paths, add_sysinclude_paths
 
-Adds an include path or system include path to the compiler context. The first
-is similar to the -I command line argument that you get with most (all?)
-compilers. (I'm not sure how to set the system include paths with gcc or any
-other compiler.) By specifying an include path, you can use statements like
+Adds include paths or system include paths to the compiler context. For example,
+
+ $context->add_include_paths qw(/usr/local/include /my/headers);
+
+The paths will be tested for existence before being added, and if they are not
+found, you will get an error message indicating their non-existence.
+
+Adding include paths is similar to the -I command line argument that you get
+with most (all?) compilers. (I'm not sure how to set the system include paths
+with gcc or any other compiler.) By specifying an include path, you can use
+statements like
 
  #include "my_header.h"
 
@@ -111,15 +118,17 @@ All include paths must be set before calling L</compile>.
 
 =cut
 
-sub add_include_path {
-	my ($self, $path) = @_;
-	# Make sure the path makes sense:
-	croak("Error including path [$path]: path does not appear to exist")
-		unless -d $path;
-	$self->_add_include_path($path);
+sub add_include_paths {
+	my $self = shift;
+	for my $path (@_) {
+		# Make sure the path makes sense:
+		croak("Error including path [$path]: path does not appear to exist")
+			unless -d $path;
+		$self->_add_include_path($path);
 	
-	# Croak if anything happened:
-	$self->report_if_error("Error including path [$path]: MESSAGE");
+		# Croak if anything happened:
+		$self->report_if_error("Error including path [$path]: MESSAGE");
+	}
 }
 
 # Report errors if they crop-up:
@@ -138,15 +147,17 @@ sub get_error_message {
 	return $msg;
 }
 
-sub add_sysinclude_path {
-	my ($self, $path) = @_;
-	# Make sure the path makes sense:
-	croak("Error including syspath [$path]: path does not appear to exist")
-		unless -d $path;
-	$self->_add_sysinclude_path($path);
+sub add_sysinclude_paths {
+	my $self = shift;
+	for my $path (@_) {
+		# Make sure the path makes sense:
+		croak("Error including syspath [$path]: path does not appear to exist")
+			unless -d $path;
+		$self->_add_sysinclude_path($path);
 	
-	# Croak if anything happened:
-	$self->report_if_error("Error including syspath [$path]: MESSAGE");
+		# Croak if anything happened:
+		$self->report_if_error("Error including syspath [$path]: MESSAGE");
+	}
 }
 
 =head2 define
