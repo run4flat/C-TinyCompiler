@@ -37,7 +37,7 @@ Compile C-code in memory at runtime.
  
  my $func_ref = $state->
 
-=head1 METHODS
+=head1 PRE-COMPILE METHODS
 
 The compiler context has three main events that divide the usage into two
 stages. Those events are creation, compilation, and destruction. Between
@@ -469,71 +469,6 @@ sub line_number {
 	return "#line $line \"$filename\"";
 }
 
-=head2 compile
-
-Concatenates the text of the three code sections, jit-compiles them, appies all
-symbols from the included packages, and relocates the code so that symbols can
-be retrieved. In short, this is the transformative step that converts your code
-from ascii into machine.
-
-working here - document error messages
-
-=cut
-
-sub compile {
-	my $self = shift;
-	
-	# Make sure we haven't already compiled with this context:
-	croak('This context has already been compiled') if $self->has_compiled;
-	
-	# Assemble the code (with primitive section indicators):
-	eval {
-		my $code = '';
-		for my $section (qw(Head Body Foot)) {
-			$code .= "#line 1 \"$section\"\n" . $self->{$section};
-		}
-		$self->_compile($code);
-		1;
-	} or do {
-		# We ran into a problem! Report the compiler issue (as reported from
-		# the compiled line) if known:
-		my $message = $self->get_error_message;
-		if ($message) {
-			# Fix the rather terse line number notation:
-			$message =~ s/:(\d+:)/ line $1/g;
-			# Change "In file included..." to "in file included..."
-			$message =~ s/^I/i/;
-			# Remove "error" in "... 13: error: ..."
-			$message =~ s/: error:/:/;
-			# Finally, die:
-			die "Unable to compile $message\n";
-		}
-		
-		# Otherwise report an unknown compiler issue, indicating the line in the
-		# Perl script that called for the compile action:
-		croak("Unable to compile for unknown reasons");
-	};
-	
-	# Apply the pre-compiled symbols:
-	while (my ($package, $options) = each %{$self->{applied_package}}) {
-		$package->apply_symbols($self, @$options);
-	}
-
-	# Relocate
-	eval {
-		$self->_relocate;
-		1;
-	} or do {
-		# We ran into a problem! Report the relocation issue, if known:
-		$self->report_if_error("Unable to relocate: MESSAGE");
-		# Report an unknown relocation issue if not known:
-		croak("Unable to relocate for unknown reasons");
-	};
-	
-	# Finish by setting the "compiled" flag:
-	$self->{has_compiled} = 1;
-}
-
 =head2 apply_packages
 
 Adds the given packages to this compiler context. The names should be the
@@ -624,6 +559,138 @@ sub apply_packages {
 	}
 }
 
+=head1 COMPILE METHODS
+
+These are methods related to compiling your source code. Apart from C<compile>,
+you need not worry about these methods unless you are trying to create a TCC
+package.
+
+=head2 compile
+
+Concatenates the text of the three code sections, jit-compiles them, appies all
+symbols from the included packages, and relocates the code so that symbols can
+be retrieved. In short, this is the transformative step that converts your code
+from ascii into machine.
+
+working here - document error messages
+
+=cut
+
+sub compile {
+	my $self = shift;
+	
+	# Make sure we haven't already compiled with this context:
+	croak('This context has already been compiled') if $self->has_compiled;
+	
+	# Assemble the code (with primitive section indicators):
+	eval {
+		my $code = '';
+		for my $section (qw(Head Body Foot)) {
+			$code .= "#line 1 \"$section\"\n" . $self->{$section};
+		}
+		$self->_compile($code);
+		1;
+	} or do {
+		# We ran into a problem! Report the compiler issue (as reported from
+		# the compiled line) if known:
+		my $message = $self->get_error_message;
+		if ($message) {
+			# Fix the rather terse line number notation:
+			$message =~ s/:(\d+:)/ line $1/g;
+			# Change "In file included..." to "in file included..."
+			$message =~ s/^I/i/;
+			# Remove "error" in "... 13: error: ..."
+			$message =~ s/: error:/:/;
+			# Finally, die:
+			die "Unable to compile $message\n";
+		}
+		
+		# Otherwise report an unknown compiler issue, indicating the line in the
+		# Perl script that called for the compile action:
+		croak("Unable to compile for unknown reasons");
+	};
+	
+	# Apply the pre-compiled symbols:
+	while (my ($package, $options) = each %{$self->{applied_package}}) {
+		$package->apply_symbols($self, @$options);
+	}
+
+	# Relocate
+	eval {
+		$self->_relocate;
+		1;
+	} or do {
+		# We ran into a problem! Report the relocation issue, if known:
+		$self->report_if_error("Unable to relocate: MESSAGE");
+		# Report an unknown relocation issue if not known:
+		croak("Unable to relocate for unknown reasons");
+	};
+	
+	# Finish by setting the "compiled" flag:
+	$self->{has_compiled} = 1;
+}
+
+=head2 add_symbols
+
+Adds symbols to a compiler context. This function expects the symbols as
+
+ symbol_name => pointer
+
+pairs. By I<symbol>, I mean any C thing that you want to give a name in your
+compiler context. That is, you can add a function to your compiler context that
+was compiled elsewhere, or tell the compiler context the location of some
+variable that you wish it to access as a global variable.
+
+This function requires that you send a true C pointer that points to your
+symbol. This only makes sense if you have a way to get C pointers to your
+symbols. This would be the case if you have compiled code with a separate TCC
+context (in which case you would use L</get_symbols> to retrieve that pointer),
+or if you have XS code that can retrieve a pointer to a function or global
+variable for you.
+
+working here - add examples, and make sure we can have two compiler contexts at
+the same time.
+
+For example, the input should look like this:
+
+ $context->add_symbols( func1 => $f_pointer, max_N => $N_pointer);
+
+If you fail to provide key/value pairs, this function will croak saying
+
+ You must supply key => value pairs to add_symbols
+
+=head1 POST-COMPILE METHODS
+
+These are methods you can call on your context after you have compiled the
+associated code.
+
+=head2 get_symbols
+
+Retrieves the pointers to a given list of symbols and returns a key/value list
+of pairs as
+
+ symbol_name => pointer
+
+=head2 get_symbol
+
+Like L</get_symbols>, but only expects a single symbol name and only returns the
+pointer (rather than the symbol name/pointer pair). For example,
+
+ $context->code('Body') .= q{
+     void my_func() {
+         printf("Hello!\n");
+     }
+ };
+ $context->compile;
+ my $func_pointer = $context->get_symbol('my_func');
+
+=cut
+
+sub get_symbol {
+	my ($self, $symbol_name) = @_;
+	my (undef, $to_return) = $self->get_symbols($symbol_name);
+	return $to_return;
+}
 
 =head2 call_function
 

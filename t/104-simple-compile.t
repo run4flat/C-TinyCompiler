@@ -1,16 +1,14 @@
 #!perl
-# A test to check that the compiler works and can invoke code. This has to work
-# pretty hard to achieve its aim: it must create a perl file that gets executed
-# and whose code gets 
+# A test to check that the compiler works and can invoke code. In order to avoid
+# the complications of interacting with the Perl API (which is a package and,
+# therefore, a 200-level test), this uses printf statements from the compiled
+# C code, executes the code in a seperate Perl process, and captures the output.
 
 use 5.006;
 use strict;
 use warnings;
 use Test::More tests => 4;
 
-BEGIN {
-	push @INC, '.';
-}
 use inc::Capture;
 
 my $results = Capture::it(<<'TEST_CODE');

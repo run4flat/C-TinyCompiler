@@ -126,7 +126,7 @@ _relocate(state)
 		int ret = tcc_relocate(state);
 		if (ret < 0) croak("Relocation error\n");
 
-############ Perl API ############
+############ Post-Compiler ############
 void
 _call_function(state, func_name, input, output)
 	TCCStateObj * state
@@ -137,6 +137,33 @@ _call_function(state, func_name, input, output)
 		/* Get a pointer to the function */
 		my_func_caller_ptr p_func
 			= (my_func_caller_ptr)tcc_get_symbol(state, func_name);
+		/* Croak if we encountered errors */
+		if (p_func == 0) croak("Unable to locate %s", func_name);
 		/* Call it with the arrays of inputs and outputs */
 		p_func(input, output);
-		
+
+void
+get_symbols(state, ...)
+	TCCStateObj * state
+	PREINIT:
+		char * symbol_name;
+		void * symbol_pointer;
+		int i;
+	PPCODE:
+		EXTEND(SP, 2*items);
+		for (i = 0; i < items; i++) {
+			/* Get the tentative name */
+			symbol_name = SvPVbyte_nolen(ST(i));
+			
+			/* Get a pointer to the symbol */
+			symbol_pointer = tcc_get_symbol(state, symbol_name);
+			
+			/* croak if the symbol retrieval was not successful, as this is
+			 * likely to be the result of a typo on the programmer's part */
+			if (symbol_pointer == 0) croak("Unable to locate %s", symbol_name);
+			
+			/* Push the resulting key => value onto the return list */
+			PUSHs(sv_2mortal(newSVpv(symbol_name, strlen(symbol_name))));
+			PUSHs(sv_2mortal(newSViv(PTR2IV(symbol_pointer))));
+		}
+
