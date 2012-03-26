@@ -16,7 +16,11 @@ die "Unable to locate Perl CORE directory!" unless $core_dir;
 # Pull in the local includes:
 use Config;
 my @local_inc = grep {-d} split / /, $Config{locincpth};
-#print "Local includes are ", join('|', @local_inc), "\n";
+# Add i386-linux-gnu, since that's causing trouble on my Ubuntu. I wish there
+# were a better way to handle this. :-(
+for (@local_inc, '/usr/include') {
+	push @local_inc, "$_/i386-linux-gnu" if -d "$_/i386-linux-gnu";
+}
 
 sub apply {
 	my (undef, $state) = @_;
