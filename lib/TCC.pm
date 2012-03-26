@@ -415,6 +415,12 @@ sub code :lvalue {
 
 =head2 line_number
 
+Build a line number directive for you. Use like so:
+
+ $context->code('Body') .= TCC::line_number(__LINE__) . q{
+     ... code goes here ...
+ };
+
 If you run into a compiler issue with your code, you will get an error that
 looks like this:
 
@@ -474,7 +480,11 @@ sub compile {
 		# We ran into a problem! Report the compiler issue (as reported from
 		# the compiled line) if known:
 		my $message = $self->get_error_message;
-		die "Unable to compile at $message\n" if $message;
+		# Fix the rather terse line number notation:
+		$message =~ s/:(\d+:)/ line $1/g;
+		# Change "In file included..." to "in file included..."
+		$message =~ s/^I/i/;
+		die "Unable to compile $message\n" if $message;
 		
 		# Report an unknown compiler issue from the compile call line if not
 		# known:
