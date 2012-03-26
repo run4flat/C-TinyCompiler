@@ -424,16 +424,20 @@ Build a line number directive for you. Use like so:
 If you run into a compiler issue with your code, you will get an error that
 looks like this:
 
- Unable to compile at <string>:13: error: ',' expected (got "{")
+ Unable to compile at Body line 13: error: ',' expected (got "{")
 
-It would be nice if this could tell you the line in your Perl script at which
-the problematic code resides. To achieve this, you would say something like:
+Although it tells you the section in which the error occurred, you have no idea
+where to find your Perl code that created this. Fortunately, C (and Perl) allow
+you to give hints to the compiler using a C<#line> directive. Without this handy
+function, you would say something like:
 
  $context->code('Body') .= '#line ' . (__LINE__+1) . ' "' . __FILE__ . q{"
      ... code goes here ...
  };
 
-That is ugly. Instead, you can use C<TCC::line_number> to perform this for you:
+and then your error reporting would say where the error occurred with respect to
+the line in your script. That formula is long-winded, so you can use this useful
+bit of shorthand instead:
 
  $context->code('Body') .= TCC::line_number(__LINE__) . q{
      ... code goes here ...
@@ -471,23 +475,31 @@ sub compile {
 	# Make sure we haven't already compiled with this context:
 	croak('This context has already been compiled') if $self->has_compiled;
 	
-	# Assemble the code:
+	# Assemble the code (with primitive section indicators):
 	eval {
-		my $code = $self->{Head} . $self->{Body} . $self->{Foot};
+		my $code = '';
+		for my $section (qw(Head Body Foot)) {
+			$code .= "#line 1 \"$section\"\n" . $self->{$section};
+		}
 		$self->_compile($code);
 		1;
 	} or do {
 		# We ran into a problem! Report the compiler issue (as reported from
 		# the compiled line) if known:
 		my $message = $self->get_error_message;
-		# Fix the rather terse line number notation:
-		$message =~ s/:(\d+:)/ line $1/g;
-		# Change "In file included..." to "in file included..."
-		$message =~ s/^I/i/;
-		die "Unable to compile $message\n" if $message;
+		if ($message) {
+			# Fix the rather terse line number notation:
+			$message =~ s/:(\d+:)/ line $1/g;
+			# Change "In file included..." to "in file included..."
+			$message =~ s/^I/i/;
+			# Remove "error" in "... 13: error: ..."
+			$message =~ s/: error:/:/;
+			# Finally, die:
+			die "Unable to compile $message\n";
+		}
 		
-		# Report an unknown compiler issue from the compile call line if not
-		# known:
+		# Otherwise report an unknown compiler issue, indicating the line in the
+		# Perl script that called for the compile action:
 		croak("Unable to compile for unknown reasons");
 	};
 	
