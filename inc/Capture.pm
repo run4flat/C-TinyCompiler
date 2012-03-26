@@ -1,8 +1,8 @@
 # My tiny capture library, used to test the simplest of TCC programs.
 
-use File::Temp qw(tempfile);
 use strict;
 use warnings;
+use File::Temp qw(tempfile);
 
 # Used to get the correct perl interpreter
 use Module::Build;
