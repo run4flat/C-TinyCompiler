@@ -99,7 +99,7 @@ add_libraries(state, ...)
 		char * lib_name;
 		int i;
 	CODE:
-		for (i = 0; i < items; i++) {
+		for (i = 1; i < items; i++) {
 			lib_name = SvPV_nolen(ST(i));
 			if (-1 == tcc_add_library(state, lib_name)) {
 				/* Returns 0 on success, -1 on failure */
@@ -114,7 +114,7 @@ add_library_paths(state, ...)
 		char * path;
 		int i;
 	CODE:
-		for (i = 0; i < items; i++) {
+		for (i = 1; i < items; i++) {
 			path = SvPV_nolen(ST(i));
 			tcc_add_library_path(state, path);
 		}
