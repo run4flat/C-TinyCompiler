@@ -162,18 +162,24 @@ sub add_sysinclude_paths {
 
 =head2 define
 
-This defines a preprocessor symbol (not to be confused with L<add_symbol>, which
-adds a symbol to the compiler lookup table). It takes the preprocessor symbol
-name and an optional string to which it should be expanded. This functions much
-like the C<-D> switch for the GNU C Compiler (and possibly others). In this way,
-having this in your Perl code
+This defines a preprocessor symbol (not to be confused with L</add_symbols>,
+which adds a symbol to the compiler lookup table). It takes the preprocessor
+symbol name and an optional string to which it should be expanded. This
+functions much like the C<-D> switch for the GNU C Compiler (and possibly
+others). In this way, having this in your Perl code
 
  $context->define('DEBUG_PRINT_INT(val)'
-     , 'printf("For " #val ", got %d\n", val));
+     , 'printf("For " #val ", got %d\n", val)');
 
 gives similar results as having this at the top of your C code:
 
  #define DEBUG_PRINT_INT(val) printf("For " #val ", got %d\n", val)
+
+In fact, TCC even supports variadic macros, both directly in C code and using
+this method.
+
+=for details
+The above statements are covered in the test suite, 104-simple-compile.t
 
 Normally in C code, you might have such a definition within a C<#ifdef> block
 like this:
