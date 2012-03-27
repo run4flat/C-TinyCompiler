@@ -13,10 +13,10 @@ my $context = TCC->new;
 eval {$context->add_include_paths('.')};
 is($@, '', "Adding '.' should always work");
 eval {$context->add_include_paths('random-does-not-exist')};
-isnt($@, '', 'Adding a non-existent path croaks');
+is($@, '', 'Adding a non-existent path is fine, too');
 
 ############## system inclusion tests: 2
 eval {$context->add_sysinclude_paths('.')};
 is($@, '', "Adding '.' should always work");
 eval {$context->add_sysinclude_paths('random-does-not-exist')};
-isnt($@, '', 'Adding a non-existent path croaks');
+is($@, '', 'Adding a non-existent path is fine, too');

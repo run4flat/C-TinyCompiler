@@ -55,25 +55,38 @@ DESTROY(context)
 # The next two are pretty much direct copies of each other
 
 void
-_add_include_path(state, pathname)
+add_include_paths(state, ...)
 	TCCStateObj * state
-	const char * pathname
+	PREINIT:
+		char * path_name;
+		int i, ret;
 	CODE:
-		int ret = tcc_add_include_path(state, pathname);
-		/* As of this time of writing, tcc_add_include always returns zero,
-		 * but if that ever changes, this croak is read to catch it */
-		if (ret < 0) croak("Error including path [%s]: unkown tcc error\n", pathname);
-
+		for (i = 1; i < items; i++) {
+			path_name = SvPVbyte_nolen(ST(i));
+			ret = tcc_add_include_path(state, path_name);
+			/* As of this time of writing, tcc_add_include always returns zero,
+			 * but if that ever changes, this croak is ready to catch it */
+			if (ret < 0) {
+				croak("Unkown TCC error including path [%s]\n", path_name);
+			}
+		}
 
 void
-_add_sysinclude_path(state, pathname)
+add_sysinclude_paths(state, pathname)
 	TCCStateObj * state
-	const char * pathname
+	PREINIT:
+		char * path_name;
+		int i, ret;
 	CODE:
-		int ret = tcc_add_sysinclude_path(state, pathname);
-		/* As of this time of writing, tcc_add_sysinclude always returns zero,
-		 * but if that ever changes, this croak is read to catch it */
-		if (ret < 0) croak("Error including syspath [%s]: unknown tcc error\n", pathname);
+		for (i = 1; i < items; i++) {
+			path_name = SvPVbyte_nolen(ST(i));
+			ret = tcc_add_sysinclude_path(state, path_name);
+			/* As of this time of writing, tcc_add_sysinclude always returns
+			 * zero, but if that ever changes, this croak is ready to catch it */
+			if (ret < 0) {
+				croak("Unkown TCC error including syspath [%s]\n", path_name);
+			}
+		}
 
 void
 _define(state, symbol_name, value)
@@ -100,7 +113,7 @@ add_libraries(state, ...)
 		int i;
 	CODE:
 		for (i = 1; i < items; i++) {
-			lib_name = SvPV_nolen(ST(i));
+			lib_name = SvPVbyte_nolen(ST(i));
 			if (-1 == tcc_add_library(state, lib_name)) {
 				/* Returns 0 on success, -1 on failure */
 				croak("Unable to add library %s", lib_name);
@@ -115,7 +128,7 @@ add_library_paths(state, ...)
 		int i;
 	CODE:
 		for (i = 1; i < items; i++) {
-			path = SvPV_nolen(ST(i));
+			path = SvPVbyte_nolen(ST(i));
 			tcc_add_library_path(state, path);
 		}
 
@@ -142,7 +155,7 @@ add_symbols(state, ...)
 		}
 		int i;
 		for (i = 1; i < items; i += 2) {
-			symbol_name = SvPV_nolen(ST(i));
+			symbol_name = SvPVbyte_nolen(ST(i));
 			symbol_ptr = INT2PTR(void*, SvIV(ST(i+1)));
 			tcc_add_symbol(state, symbol_name, symbol_ptr);
 		}

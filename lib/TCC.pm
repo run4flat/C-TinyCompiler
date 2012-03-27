@@ -95,9 +95,6 @@ Adds include paths or system include paths to the compiler context. For example,
 
  $context->add_include_paths qw(/usr/local/include /my/headers);
 
-The paths will be tested for existence before being added, and if they are not
-found, you will get an error message indicating their non-existence.
-
 Adding include paths is similar to the -I command line argument that you get
 with most (all?) compilers. (I'm not sure how to set the system include paths
 with gcc or any other compiler.) By specifying an include path, you can use
@@ -116,20 +113,15 @@ path.
 
 All include paths must be set before calling L</compile>.
 
-=cut
+It is possible that this will croak with this message:
 
-sub add_include_paths {
-	my $self = shift;
-	for my $path (@_) {
-		# Make sure the path makes sense:
-		croak("Error including path [$path]: path does not appear to exist")
-			unless -d $path;
-		$self->_add_include_path($path);
-	
-		# Croak if anything happened:
-		$self->report_if_error("Error including path [$path]: MESSAGE");
-	}
-}
+ Unkown TCC error including path [%s]
+
+but as of the time of writing, TCC will never trigger that error, so I find it
+highly unlikely that you will ever see it. If you do, these docs and the code
+need to be updated to query the source of the error and be more descriptive.
+
+=cut
 
 # Report errors if they crop-up:
 sub report_if_error {
@@ -145,19 +137,6 @@ sub get_error_message {
 	my $msg = $self->{error_message};
 	$self->{error_message} = '';
 	return $msg;
-}
-
-sub add_sysinclude_paths {
-	my $self = shift;
-	for my $path (@_) {
-		# Make sure the path makes sense:
-		croak("Error including syspath [$path]: path does not appear to exist")
-			unless -d $path;
-		$self->_add_sysinclude_path($path);
-	
-		# Croak if anything happened:
-		$self->report_if_error("Error including syspath [$path]: MESSAGE");
-	}
 }
 
 =head2 define
