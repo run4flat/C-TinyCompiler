@@ -549,11 +549,16 @@ sub apply_packages {
 		# Skip if already applied
 		next PACKAGE if $self->{applied_package}->{$package_spec};
 		
+		# Pull in the package if it doesn't already exist:
+		unless ($package_spec->can('apply')) {
+			# All this mumbo jumbo is used to ensure that we get proper line
+			# number reporting if the package cannot be use'd.
+			eval '#line ' . (__LINE__-1) . ' "' . __FILE__ . "\"\nuse $package_spec";
+			croak($@) if $@;
+		}
+		
 		# Apply the package, storing the options (for use later under the
-		# symbol application). All this mumbo jumbo is used to ensure that
-		# we get proper line number reporting if the package cannot be use'd.
-		eval '#line ' . (__LINE__-1) . ' "' . __FILE__ . "\"\nuse $package_spec";
-		croak($@) if $@;
+		# symbol application).
 		$package_spec->apply($self, @options);
 		$self->{applied_package}->{$package_spec} = [@options];
 	}
