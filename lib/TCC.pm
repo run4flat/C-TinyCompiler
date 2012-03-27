@@ -559,6 +559,33 @@ sub apply_packages {
 	}
 }
 
+=head2 add_librarys
+
+Adds the libraries, similar to using C<-l> for most compilers. For example,
+
+ $context->add_librarys('gsl', 'cairo');
+
+would be equivalent to saying, on the command line:
+
+ cc ... -llibgsl -llibcairo ...
+
+If the compiler cannot find one of the requested libraries, it will croak saying
+
+ Unable to add library %s
+
+=head2 add_library_paths
+
+Adds library paths, similar to using C<-L> for most compilers. For example,
+
+ $context->add_library_paths('C:\\mylibs', '/usr/home/david/libs');
+
+would be equivalent to saying, on the command line:
+
+ cc ... -LC:\\mylibs -L/usr/home/david/libs ...
+
+Notice that the paths are not checked for existence before they are added, and
+this function will never throw an error.
+
 =head1 COMPILE METHODS
 
 These are methods related to compiling your source code. Apart from C<compile>,

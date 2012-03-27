@@ -90,6 +90,35 @@ _undefine(state, symbol_name)
 	CODE:
 		tcc_undefine_symbol(state, symbol_name);
 
+############ Libraries ############
+
+void
+add_libraries(state, ...)
+	TCCStateObj * state
+	PREINIT:
+		char * lib_name;
+		int i;
+	CODE:
+		for (i = 0; i < items; i++) {
+			lib_name = SvPV_nolen(ST(i));
+			if (-1 == tcc_add_library(state, lib_name)) {
+				/* Returns 0 on success, -1 on failure */
+				croak("Unable to add library %s", lib_name);
+			}
+		}
+
+void
+add_library_paths(state, ...)
+	TCCStateObj * state
+	PREINIT:
+		char * path;
+		int i;
+	CODE:
+		for (i = 0; i < items; i++) {
+			path = SvPV_nolen(ST(i));
+			tcc_add_library_path(state, path);
+		}
+
 ############ Compiler ############
 void
 _compile(state, code)
