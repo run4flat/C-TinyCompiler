@@ -11,12 +11,12 @@ my $context = TCC->new;
 
 ############## normal inclusion tests: 2
 eval {$context->add_include_paths('.')};
-is($@, '', "Adding '.' should always work");
+is($@, '', "Add '.' (i.e. existing path) to include paths");
 eval {$context->add_include_paths('random-does-not-exist')};
-is($@, '', 'Adding a non-existent path is fine, too');
+is($@, '', '... and a non-existent path');
 
 ############## system inclusion tests: 2
 eval {$context->add_sysinclude_paths('.')};
-is($@, '', "Adding '.' should always work");
+is($@, '', "Add '.' (i.e. existing path) to include syspaths");
 eval {$context->add_sysinclude_paths('random-does-not-exist')};
-is($@, '', 'Adding a non-existent path is fine, too');
+is($@, '', '... and a non-existent path');
