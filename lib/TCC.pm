@@ -98,46 +98,59 @@ Adds include paths or system include paths to the compiler context. For example,
 
  $context->add_include_paths qw(C:\my\win32\headers /my/linux/headers);
 
-(As a quick aside, notice that I do not need to escape the backslashes for
-the Windows path when I use qw.)
 
-working here - the difference between include and sysinclude needs to be tested
-and then documented.
+System include paths are places to search when you say C<< #include <lib.h> >>,
+whereas non-system include paths are places to search when you say
+C<#inclue "mylib.h">.
+
+Items to note:
+
+=over
+
+=item '.' is always in the include path
+
+The list of include paths always includes '.', the working directory when the
+compile function is invoked. The list of system include paths does not include
+'.' by default.
+
+=item #include "lib.h" uses path and syspath
+
+When your C code has C<#include "lib.h">, the search process starts off looking
+in all directories that are in the  include path list, followed by all the
+directories in the system include path list.
+
+=item First added = first checked
+
+Suppose you have files F<foo/bar.h> and F<foo/baz/bar.h> and you add both C<foo>
+and C<foo/baz> to your list of include paths. Which header will you get? The
+compiler will search through the include paths starting with the first path
+added. In other words, this will pull in F<foo/bar.h>:
+
+ use File::Spec;
+ $context->add_include_paths('foo', File::Spec->catfile('foo', 'bar'));
+ $context->code('Head') .= {
+     #include "bar.h"
+ };
+
+=item Adding to the syspath is like using C<-I>
 
 Adding system include paths is similar to the C<-I> command line argument that
 you get with most (all?) compilers. It indicates the directories to search when
-you say
+you say C<< #include <some_lib.h> >>.
 
- #include <some_lib.h>
+=item Backslashes and qw(), q()
 
-On the other hand, adding non-system include paths indicats where the compiler
-should search for files when you use double quotes:
+As a notational convenience, notice that you do not need to escape the
+backslashes for the Windows path when you use qw. That makes Windows paths
+easier to read, especially when compared to normal single and double quoted
+strings.
 
- #include "my_lib.h"
+=item Nonexistent paths are OK
 
+Adding nonexistent paths will not trigger errors nor cause the compiler to
+croak, so it's ok if you throw in lots of distinct system-dependent paths.
 
-At this point, you might 
-
- I<typical> behavior of non-system include path processing depends on your compiler
-
-(I'm not sure how to set the non-system
-include paths with gcc or any other compiler.) By specifying an include path, you can use
-statements like
-
- #include "my_header.h"
-
-and the compiler will look for C<my_header.h> in the various include paths. The
-sysinclude path lets you use angle brackets in a similar way, like so:
-
- #include <my_header.h>
-
-Fiddling with the sysinclude paths is akin to fiddling with the
-C<C_INCLUDE_PATH> enviroment variable (with gcc compilers, at least)
-
-CFLAGS="-I/my/linux/headers"
-
-In general, you should probably stick with just adding to the normal include
-path.
+=back
 
 All include paths must be set before calling L</compile>.
 
