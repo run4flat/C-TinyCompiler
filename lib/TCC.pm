@@ -333,7 +333,7 @@ L<is_defined> instead. That is to say:
  }
  
  # PROBABLY WHAT YOU MEANT TO SAY
- if ($context->is_defined('DEBUGGIN')) {
+ if ($context->is_defined('DEBUGGING')) {
      # ...
  }
 
