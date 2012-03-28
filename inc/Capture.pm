@@ -20,7 +20,7 @@ sub Capture::it {
 	my $perl = $build->find_perl_interpreter;
 	
 	# Run it!
-	my $results = `$perl -Mblib $source_filename`;
+	my $results = `$perl -Mblib $source_filename 2>&1`;
 	
 	# clean up the file and return the results
 	unlink $source_filename;
