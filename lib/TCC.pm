@@ -96,11 +96,32 @@ sub new {
 
 Adds include paths or system include paths to the compiler context. For example,
 
- $context->add_include_paths qw(/usr/local/include /my/headers);
+ $context->add_include_paths qw(C:\my\win32\headers /my/linux/headers);
 
-Adding include paths is similar to the -I command line argument that you get
-with most (all?) compilers. (I'm not sure how to set the system include paths
-with gcc or any other compiler.) By specifying an include path, you can use
+(As a quick aside, notice that I do not need to escape the backslashes for
+the Windows path when I use qw.)
+
+working here - the difference between include and sysinclude needs to be tested
+and then documented.
+
+Adding system include paths is similar to the C<-I> command line argument that
+you get with most (all?) compilers. It indicates the directories to search when
+you say
+
+ #include <some_lib.h>
+
+On the other hand, adding non-system include paths indicats where the compiler
+should search for files when you use double quotes:
+
+ #include "my_lib.h"
+
+
+At this point, you might 
+
+ I<typical> behavior of non-system include path processing depends on your compiler
+
+(I'm not sure how to set the non-system
+include paths with gcc or any other compiler.) By specifying an include path, you can use
 statements like
 
  #include "my_header.h"
@@ -110,7 +131,11 @@ sysinclude path lets you use angle brackets in a similar way, like so:
 
  #include <my_header.h>
 
-Frankly, I'm not sure how often you'll want to fiddle with the sysinclude paths.
+Fiddling with the sysinclude paths is akin to fiddling with the
+C<C_INCLUDE_PATH> enviroment variable (with gcc compilers, at least)
+
+CFLAGS="-I/my/linux/headers"
+
 In general, you should probably stick with just adding to the normal include
 path.
 

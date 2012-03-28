@@ -9,9 +9,7 @@ use Test::More tests => 2;
 use TCC;
 
 my $context = eval { TCC->new };
-isnt($context, undef, 'TCC->new works')
-	or diag ($@);
+isnt($context, undef, 'TCC->new') or diag ($@);
 
 eval { $context = undef };
-is($@, '', 'Destruction does not cause trouble')
-	or diag($@);
+is($@, '', 'Destruction') or diag($@);
