@@ -1,8 +1,5 @@
 #!perl
-# A test to check that the compiler works and can invoke code. In order to avoid
-# the complications of interacting with the Perl API (which is a package and,
-# therefore, a 200-level test), this uses printf statements from the compiled
-# C code, executes the code in a seperate Perl process, and captures the output.
+# A test to check that the compiler works and can invoke code.
 
 use 5.006;
 use strict;
@@ -27,7 +24,7 @@ $context->compile;
 print "OK: compiled\n";
 
 # Call the compiled function:
-$context->call_function('print_hello');
+$context->call_void_function('print_hello');
 
 print "Done\n";
 TEST_CODE
@@ -51,7 +48,7 @@ $context->code('Body') = q{
 	}
 };
 $context->compile;
-$context->call_function('print_hello');
+$context->call_void_function('print_hello');
 TEST_CODE
 
 like($results, qr/Hello from TCC/, 'Simple in-code #define');
@@ -68,7 +65,7 @@ $context->code('Body') = q{
 	}
 };
 $context->compile;
-$context->call_function('print_hello');
+$context->call_void_function('print_hello');
 TEST_CODE
 
 like($results, qr/Hello from TCC/, 'Perl in-code #define');
@@ -96,7 +93,7 @@ while (my ($input, $output) = each %variadic) {
 $context->compile;
 $i = 0;
 for (keys %variadic) {
-	$context->call_function("print$i");
+	$context->call_void_function("print$i");
 	$i++;
 }
 TEST_CODE
@@ -128,7 +125,7 @@ while (my ($input, $output) = each %variadic) {
 $context->compile;
 $i = 0;
 for (keys %variadic) {
-	$context->call_function("print$i");
+	$context->call_void_function("print$i");
 	$i++;
 }
 TEST_CODE
@@ -161,7 +158,7 @@ $context->code('Body') .= q{
 	}
 };
 $context->compile;
-$context->call_function("test");
+$context->call_void_function("test");
 TEST_CODE
 
 like($results, qr/For a, got 1/, 'Perl-side token pasting macros');

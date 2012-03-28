@@ -15,6 +15,7 @@ void my_tcc_error_func (void * context, const char * msg ) {
 }
 
 typedef void (*my_func_caller_ptr)(AV*, AV*);
+typedef void (*my_void_func)(void);
 
 MODULE = TCC           PACKAGE = TCC
 
@@ -169,6 +170,18 @@ _relocate(state)
 		if (ret < 0) croak("Relocation error\n");
 
 ############ Post-Compiler ############
+void
+call_void_function(state, func_name)
+	TCCStateObj * state
+	const char * func_name
+	CODE:
+		/* Get a pointer to the function */
+		my_void_func p_func = (my_void_func)tcc_get_symbol(state, func_name);
+		/* Croak if we encountered errors */
+		if (p_func == 0) croak("Unable to locate %s", func_name);
+		/* Call it with the arrays of inputs and outputs */
+		p_func();
+
 void
 _call_function(state, func_name, input, output)
 	TCCStateObj * state

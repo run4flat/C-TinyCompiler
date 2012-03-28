@@ -43,9 +43,9 @@ The compiler context has three main events that divide the usage into two
 stages. Those events are creation, compilation, and destruction. Between
 creation and compilation you can do many things to the compiler context to
 prepare it for compilation, like adding library paths, setting and unsetting
-C<#define>s, and adding symbols. After compilation (and relocation), you can
-retrieve symbols, which is how you get at the code or globals that you just
-compiled.
+C<#define>s, and adding code. After compilation, you can retrieve symbols (which
+is how you get at the code or globals that you just compiled) and execute
+compiled functons
 
 =head2 new
 
@@ -736,6 +736,19 @@ sub get_symbol {
 	my (undef, $to_return) = $self->get_symbols($symbol_name);
 	return $to_return;
 }
+
+=head2 call_void_function
+
+Takes the name of a a compiled function and calls it without passing any
+arguments. In other words, this assumes that your function has the following
+definition:
+
+ void my_func (void) {
+     ...
+ }
+
+This is pretty dumb because it is nearly impossible to pass parameters into the
+function, but is useful for testing purposes.
 
 =head2 call_function
 
