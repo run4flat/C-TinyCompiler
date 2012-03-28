@@ -49,16 +49,26 @@ compiled.
 
 =head2 new
 
-Creates a new Tiny C Compiler context. All compile behavior needs to be run in
-a context, so before creating any new code, you'll need to create a context.
+Creates a new Tiny C Compiler context. All compiling and linking needs to be run
+in a context, so before creating any new code, you'll need to create a context.
 
-Arguments are specified as key => value pairs. At the moment, the only key is
-the C<packages> key, which lets you specify a list of packages to apply to the
-compiler context. The value associated with that key should be an anonymous
-array (or just a string if you have only one package to include). For example,
+Arguments are simply the names of packages that you want applied to your
+compiler context. For example,
 
- my $context = TCC->new(packages => '::Perl::SV');
- my $context = TCC->new(packages => ['::Perl::SV', ::Perl::AV']);
+ my $context = TCC->new('::Perl::SV');
+ my $context = TCC->new('::Perl::SV', ::Perl::AV');
+
+To learn more about adding packages to your compiler context, see
+L</apply_packages>.
+
+This constructor will only croak if F<libtcc> is unable to allocate the storage
+needed for the compiler state, in which case you will receive this message:
+
+ Unable to create TCC compiler state!
+
+This likely means that your system is running low on resources and you will need
+to take some drastic measures (like freeing up some memory) before you try
+again.
 
 =cut
 
@@ -66,10 +76,6 @@ my %is_valid_location = map { $_ => 1 } qw(Head Body Foot);
 
 sub new {
 	my $class = shift;
-	croak("Error creating new TCC context: options must be key/value pairs")
-		unless @_ % 2 == 0;
-	# Unpack the arguments.
-	my %args = @_;
 	
 	# Create a new context object:
 	my $self = bless _new;
@@ -79,11 +85,8 @@ sub new {
 	$self->{error_message} = '';
 	$self->{has_compiled} = 0;
 	
-	# Process the packages key:
-	if (my $packages = $args{packages}) {
-		$packages = [$packages] unless ref($packages);
-		$self->apply_packages(@$packages);
-	}
+	# Process any packages:
+	$self->apply_packages(@_);
 	
 	# Return the prepared object:
 	return $self;

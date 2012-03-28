@@ -50,7 +50,7 @@ TCC::Perl - Enabling Perl's full C-API in your TCC compiler context
  use TCC;
  
  # Declare the compiler context with the AV bindings:
- my $context= TCC->new(packages => '::Perl');
+ my $context= TCC->new('::Perl');
  
  # Or add them afterwards:
  my $context = TCC->new;

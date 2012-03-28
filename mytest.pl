@@ -9,7 +9,7 @@ use blib;
 use TCC;
 
 ############## simple code compilation: 1
-my $context= TCC->new(packages => '::Perl');
+my $context= TCC->new('::Perl');
 $context->code('Body') = "#line " . (__LINE__+1) . ' "' . __FILE__ . q{"
 	void av_len_test(AV * args) {
 		printf("you passed in %d arguments\n", av_len(args)+1);
