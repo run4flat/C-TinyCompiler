@@ -72,7 +72,7 @@ add_include_paths(state, ...)
 		}
 
 void
-add_sysinclude_paths(state, pathname)
+add_sysinclude_paths(state, ...)
 	TCCStateObj * state
 	PREINIT:
 		char * path_name;
