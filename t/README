@@ -1,0 +1,23 @@
+The test files are ordered thus:
+
+0** - basic and non-compile-based tests
+1** - compile-based tests
+2** - Perl package tests
+3** - other package tests
+4** - tests of other functionality
+
+0-level tests do not require any sort of compilation or interaction with the
+compiled code. They look like normal Perl tests.
+
+100-level tests require interaction with compiled code, but cannot invoke any
+packages. Since TCC::Perl is a package, this means that the only interaction
+is via printing to stdout. As such, all 100-level tests invoke code that
+communicates via C printf's, and use inc::Capture to get the results.
+
+200-level tests focus exclusively on the TCC::Perl package.
+
+300-level tests focus on the other included packages. They can interact with
+the perl interpreter via TCC::Perl, since that will already have been
+tested by the time these run.
+
+400-level tests are for other submodules of the library.
