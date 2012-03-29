@@ -155,6 +155,19 @@ strings.
 Adding nonexistent paths will not trigger errors nor cause the compiler to
 croak, so it's ok if you throw in lots of distinct system-dependent paths.
 
+=item Path-separators are OK, but not cross-platform
+
+It is safe to submit two paths in one string by using the system's default path
+separator. For example, this works on Linux:
+
+ # Linux
+ $context->add_include_paths('/home/me/include:/home/me/sources');
+ # Windows
+ $context->add_include_paths('C:\\me\\include;C:\\me\\sources');
+
+However, the path separator is system-specific, i.e. not cross-platform. Use
+sparingy if you want cross-platform code.
+
 =back
 
 All include paths must be set before calling L</compile>.
