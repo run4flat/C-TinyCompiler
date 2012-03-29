@@ -94,30 +94,32 @@ sub new {
 
 =head2 add_include_paths, add_sysinclude_paths
 
-Adds include paths or system include paths to the compiler context. For example,
+Adds include paths or "system" include paths to the compiler context. For
+example,
 
  $context->add_include_paths qw(C:\my\win32\headers /my/linux/headers);
 
-
-System include paths are places to search when you say C<< #include <lib.h> >>,
-whereas non-system include paths are places to search when you say
-C<#inclue "mylib.h">.
+Include paths are places to search when you say C<< #include <lib.h> >> or
+C<$include "mylib.h"> in your C source. The only difference between a system
+include path and a regular include path is that all regular include paths are
+searched before any system include paths.
 
 Items to note:
 
 =over
 
-=item '.' is always in the include path
+=item quote-includes check '.', angle-bracket includes do not
 
-The list of include paths always includes '.', the working directory when the
-compile function is invoked. The list of system include paths does not include
-'.' by default.
+The only difference between saying C<#include "mylib.h"> and
+C<< #include <mylib.h> >> is that the first one always looks for F<mylib.h>
+in the current working directory before checking the include paths, whereas
+the second one only checks the include paths. By I<current working directory>,
+I mean the working directory when the L</compile> function is invoked.
 
-=item #include "lib.h" uses path and syspath
+=item Adding to the path is like using C<-I>
 
-When your C code has C<#include "lib.h">, the search process starts off looking
-in all directories that are in the  include path list, followed by all the
-directories in the system include path list.
+Adding system include paths is similar to the C<-I> command line argument that
+you get with most (all?) compilers.
 
 =item First added = first checked
 
@@ -132,11 +134,14 @@ added. In other words, this will pull in F<foo/bar.h>:
      #include "bar.h"
  };
 
-=item Adding to the syspath is like using C<-I>
+=item the last include path is checked before the first sysinclude path
 
-Adding system include paths is similar to the C<-I> command line argument that
-you get with most (all?) compilers. It indicates the directories to search when
-you say C<< #include <some_lib.h> >>.
+When your C code has C<#include "lib.h">, the search process starts off looking
+in all directories that are in the include path list, followed by all the
+directories in the system include path list. This is important if you are
+writing a TCC package. If you want your user to potentially override a header
+file by adding an include path, you should specify any special include paths
+with the sysinclude.
 
 =item Backslashes and qw(), q()
 

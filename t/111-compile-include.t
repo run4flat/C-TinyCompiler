@@ -4,7 +4,7 @@
 use 5.006;
 use strict;
 use warnings;
-use Test::More tests => 10;
+use Test::More tests => 9;
 
 use inc::Capture;
 use File::Spec;
@@ -28,7 +28,7 @@ sub build_test_header {
 	close $out_fh;
 }
 
-######################### test build_test_header presence of '.' include path: 1
+######## test build_test_header and presence of '.' double-quote include path: 1
 build_test_header qw(foo bar.h);
 
 my $results = Capture::it(<<'TEST_CODE');
@@ -49,7 +49,7 @@ $context->call_void_function('test_func');
 TEST_CODE
 
 like($results, qr/^foo.bar\.h$/
-	, "build_test_header works; '.' is in include dirs");
+	, "build_test_header works; '.' is in double-quote include dirs");
 remove_tree('foo');
 
 ############################################### make sure that '.' is the cwd: 1
@@ -75,7 +75,7 @@ like($results, qr/^foo.bar\.h$/
 	, "'.' is the working directory when compile is invoked");
 remove_tree('foo');
 
-################################### check system include does not contain '.': 1
+#################### check default angle-bracket include does not contain '.': 1
 build_test_header qw(foo bar.h);
 
 $results = Capture::it(<<'TEST_CODE');
@@ -94,7 +94,7 @@ $context->call_void_function('test_func');
 TEST_CODE
 
 like($results, qr/'foo.bar\.h' not found/
-	, "syspath does not include '.'");
+	, "default path does not include '.'");
 remove_tree('foo');
 
 ############################## double-quotes checks check path before syspath: 1
@@ -146,7 +146,7 @@ like($results, qr/^foo.bar\.h$/
 	, 'double quote includes use syspath in addition to path');
 remove_tree('foo');
 
-################### angle-brackets CHECK INCLUDE PATH before sys-include path: 1
+################### angle-brackets check include path before sys-include path: 1
 build_test_header qw(foo baz.h);
 build_test_header qw(foo bar baz.h);
 
@@ -169,7 +169,7 @@ $context->call_void_function('test_func');
 TEST_CODE
 
 like($results, qr/^foo.bar.baz\.h$/
-	, 'angle-bracket CHECK INCLUDE PATH before sys-include path');
+	, 'angle-bracket check include path before sys-include path');
 remove_tree('foo');
 
 ###################################### angle brackets use '.' if it's in path: 1
@@ -246,25 +246,3 @@ TEST_CODE
 like($results, qr/^foo.bar\.h$/
 	, 'nonexistent directories do not cause trouble');
 remove_tree('foo');
-
-########################### adding nonexistent directory doesn't break things: 1
-
-$results = Capture::it(<<'TEST_CODE');
-use TCC;
-
-my $context= TCC->new;
-$context->add_include_paths qw({B});
-
-$context->code('Body') = q{
-	#include "libtcc.h"
-	void test_func() {
-		printf("success");
-	}
-};
-$context->compile;
-$context->call_void_function('test_func');
-
-TEST_CODE
-
-is($results, 'success'
-	, '{B} brings in TCC include diretory');
