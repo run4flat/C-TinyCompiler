@@ -90,6 +90,22 @@ sub new {
 	return $self;
 }
 
+# Report errors if they crop-up:
+sub report_if_error {
+	my ($self, $to_say) = @_;
+	if (my $msg = $self->get_error_message) {
+		$to_say =~ s/MESSAGE/$msg/;
+		croak($to_say);
+	}
+}
+
+sub get_error_message {
+	my $self = shift;
+	my $msg = $self->{error_message};
+	$self->{error_message} = '';
+	return $msg;
+}
+
 =head2 add_include_paths, add_sysinclude_paths
 
 Adds include paths or "system" include paths to the compiler context. For
@@ -192,23 +208,32 @@ include paths before you L</compile>.
 
 =back
 
-=cut
+=head2 add_library_paths
 
-# Report errors if they crop-up:
-sub report_if_error {
-	my ($self, $to_say) = @_;
-	if (my $msg = $self->get_error_message) {
-		$to_say =~ s/MESSAGE/$msg/;
-		croak($to_say);
-	}
-}
+Adds library paths, similar to using C<-L> for most compilers. For example,
 
-sub get_error_message {
-	my $self = shift;
-	my $msg = $self->{error_message};
-	$self->{error_message} = '';
-	return $msg;
-}
+ $context->add_library_paths('C:\\mylibs', '/usr/home/david/libs');
+
+would be equivalent to saying, on the command line:
+
+ cc ... -LC:\\mylibs -L/usr/home/david/libs ...
+
+Notice that the paths are not checked for existence before they are added, and
+this function will never throw an error.
+
+=head2 add_librarys
+
+Adds the libraries, similar to using C<-l> for most compilers. For example,
+
+ $context->add_librarys('gsl', 'cairo');
+
+would be equivalent to saying, on the command line:
+
+ cc ... -llibgsl -llibcairo ...
+
+If the compiler cannot find one of the requested libraries, it will croak saying
+
+ Unable to add library %s
 
 =head2 define
 
@@ -497,26 +522,38 @@ sub code :lvalue {
 Build a line number directive for you. Use like so:
 
  $context->code('Body') .= TCC::line_number(__LINE__) . q{
-     ... code goes here ...
+     void test_func (void) {
+         printf("Success!\n");
+     }
  };
 
-If you run into a compiler issue with your code, you will get an error that
-looks like this:
+Suppose you have an error in your code and did not use this (or some other
+means) for indicating your line numbers. The offending code could be
 
- Unable to compile at Body line 13: error: ',' expected (got "{")
+ $context->code('Body') .= q{
+     void test_func (void {
+         printf("Success!\n");
+     }
+ };
 
-Although it tells you the section in which the error occurred, you have no idea
-where to find your Perl code that created this. Fortunately, C (and Perl) allow
+which, you will notice, forgets to close the parenthesis in the function
+definition. This will raise an error that would look like this:
+
+ Unable to compile at Body line 2: parameter declared as void
+
+Although it tells you the section in which the error occurred, if you have a
+complex script that adds code in many places, you may have no idea where to find
+offending addition in your Perl code. Fortunately, C (and Perl) allows
 you to give hints to the compiler using a C<#line> directive. Without this handy
 function, you would say something like:
 
- $context->code('Body') .= '#line ' . (__LINE__+1) . ' "' . __FILE__ . q{"
+ $context->code('Body') .= "\n#line " . (__LINE__+1) . ' "' . __FILE__ . q{"
      ... code goes here ...
  };
 
 and then your error reporting would say where the error occurred with respect to
-the line in your script. That formula is long-winded, so you can use this useful
-bit of shorthand instead:
+the line in your script. That formula is long-winded and error prone, so you can
+use this useful bit of shorthand instead:
 
  $context->code('Body') .= TCC::line_number(__LINE__) . q{
      ... code goes here ...
@@ -534,7 +571,7 @@ sub line_number {
 	my (undef, $filename) = caller;
 	# Escape backslashes:
 	$filename =~ s/\\/\\\\/g;
-	return "#line $line \"$filename\"";
+	return "\n#line $line \"$filename\"";
 }
 
 =head2 apply_packages
@@ -631,33 +668,6 @@ sub apply_packages {
 		$self->{applied_package}->{$package_spec} = [@options];
 	}
 }
-
-=head2 add_librarys
-
-Adds the libraries, similar to using C<-l> for most compilers. For example,
-
- $context->add_librarys('gsl', 'cairo');
-
-would be equivalent to saying, on the command line:
-
- cc ... -llibgsl -llibcairo ...
-
-If the compiler cannot find one of the requested libraries, it will croak saying
-
- Unable to add library %s
-
-=head2 add_library_paths
-
-Adds library paths, similar to using C<-L> for most compilers. For example,
-
- $context->add_library_paths('C:\\mylibs', '/usr/home/david/libs');
-
-would be equivalent to saying, on the command line:
-
- cc ... -LC:\\mylibs -L/usr/home/david/libs ...
-
-Notice that the paths are not checked for existence before they are added, and
-this function will never throw an error.
 
 =head1 COMPILE METHODS
 
@@ -859,6 +869,12 @@ sub has_compiled {
 =head1 Writing Functions
 
 Working here. Sorry. :-)
+
+=head1 TODO
+
+Add docs for report_if_error and get_error_message
+
+Research and add C<set_linker> if it seems appropriate.
 
 =head1 AUTHOR
 
