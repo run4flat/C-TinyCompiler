@@ -4,7 +4,7 @@
 use 5.006;
 use strict;
 use warnings;
-use Test::More tests => 15;
+use Test::More tests => 17;
 
 use inc::Capture;
 
@@ -51,7 +51,7 @@ $context->compile;
 $context->call_void_function('print_hello');
 TEST_CODE
 
-like($results, qr/Hello from TCC/, 'Simple in-code #define');
+like($results, qr/Hello from TCC/, 'Simple in-code define');
 
 ############## exercise the Perl-side define function: 1
 
@@ -68,7 +68,7 @@ $context->compile;
 $context->call_void_function('print_hello');
 TEST_CODE
 
-like($results, qr/Hello from TCC/, 'Perl in-code #define');
+like($results, qr/Hello from TCC/, 'Perl in-code define');
 
 ############## variadic macros in TCC: 3
 
@@ -98,9 +98,9 @@ for (keys %variadic) {
 }
 TEST_CODE
 
-like($results, qr/input .../, 'Variadic macro #define func(...) in TCC');
-like($results, qr/input args.../, 'Variadic macro #define func(args...) in TCC');
-like($results, qr/input arg,.../, 'Variadic macro #define func(arg,...) in TCC');
+like($results, qr/input .../, 'Variadic macro define func(...) in TCC');
+like($results, qr/input args.../, 'Variadic macro define func(args...) in TCC');
+like($results, qr/input arg,.../, 'Variadic macro define func(arg,...) in TCC');
 
 ############## variadic macros from Perl: 3
 
@@ -130,9 +130,9 @@ for (keys %variadic) {
 }
 TEST_CODE
 
-like($results, qr/input .../, 'Variadic macro #define func(...) from Perl');
-like($results, qr/input args.../, 'Variadic macro #define func(args...) from Perl');
-like($results, qr/input arg,.../, 'Variadic macro #define func(arg,...) from Perl');
+like($results, qr/input .../, 'Variadic macro define func(...) from Perl');
+like($results, qr/input args.../, 'Variadic macro define func(args...) from Perl');
+like($results, qr/input arg,.../, 'Variadic macro define func(arg,...) from Perl');
 
 ############## token pasting in TCC and from Perl: 2
 # Tests an example in the docs, under the define method. Update the note in
@@ -190,4 +190,42 @@ $context->call_void_function("test");
 TEST_CODE
 
 like($results, qr/For a, got 1/, 'Multiline macros are ok');
+
+############## Undefining macros: 2
+# Tests that undefining of macros works
+
+$results = Capture::it(<<'TEST_CODE');
+use TCC;
+my $context = TCC->new;
+
+# Define it Perl-side:
+$context->define (ONE);
+$context->define (TWO);
+
+# undefine one from Perl-side:
+$context->undefine (ONE);
+
+$context->code('Head') .= q{
+	#undef TWO
+};
+$context->code('Body') .= q{
+	void test() {
+		#ifdef ONE
+			printf("ONE is defined\n");
+		#else
+			printf("ONE is not defined\n");
+		#endif
+		#ifdef TWO
+			printf("TWO is defined\n");
+		#else
+			printf("TWO is not defined\n");
+		#endif
+	}
+};
+$context->compile;
+$context->call_void_function("test");
+TEST_CODE
+
+like($results, qr/ONE is not defined/, 'Perl-side undefine');
+like($results, qr/TWO is not defined/, 'C-side undefine');
 
