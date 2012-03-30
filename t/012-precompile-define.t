@@ -1,4 +1,3 @@
-
 #!perl -T
 # Tests to check that preprocessor definitions work. These are the unit tests
 # and they don't really test things out properly. I can't do that until I have
@@ -7,7 +6,7 @@
 use 5.006;
 use strict;
 use warnings;
-use Test::More tests => 14;
+use Test::More tests => 13;
 
 use TCC;
 my $context = TCC->new;
@@ -38,7 +37,8 @@ is($context->definition_for('my_symbol'), 'value',
 	or diag('After redefinition, value was incorrectly set as '
 		. $context->definition_for('my_symbol'));
 
-############## warning and croaking behavior: 4
+
+############## warning and croaking behavior: 3
 {
 	my $got_warnings = 0;
 	local $SIG{__WARN__} = sub {
@@ -49,20 +49,14 @@ is($context->definition_for('my_symbol'), 'value',
 }
 
 {
-	local $TCC::REDEFINE = TCC::CROAK;
-	eval {$context->define('my_symbol', 'value3')};
-	isnt($@, '', 'Redefinition under TCC::CROAK should croak');
-}
-
-{
 	my $got_warnings = 0;
 	local $SIG{__WARN__} = sub {
 		$got_warnings++;
 	};
-	local $TCC::REDEFINE = TCC::IGNORE;
+	no warnings 'TCC';
 	eval {$context->define('my_symbol', 'value4')};
-	is($@, '', 'Redefinition under TCC::IGNORE does not croak');
-	is($got_warnings, 0, 'TCC::IGNORE does not warn on redefinition');
+	is($@, '', 'Redefinition under "no warnings qw(TCC)" does not croak');
+	is($got_warnings, 0, 'Redefinition under "no warnings qw(TCC)" does not warn');
 }
 
 ############## undefining: 4

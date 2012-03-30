@@ -4,7 +4,7 @@
 use 5.006;
 use strict;
 use warnings;
-use Test::More tests => 14;
+use Test::More tests => 15;
 
 use inc::Capture;
 
@@ -163,4 +163,31 @@ TEST_CODE
 
 like($results, qr/For a, got 1/, 'Perl-side token pasting macros');
 like($results, qr/For b, got 2/, 'TCC-side token pasting macros');
+
+############## Multiline macros: 1
+# Tests whether multiline macros are allowed.
+
+$results = Capture::it(<<'TEST_CODE');
+use TCC;
+my $context = TCC->new;
+
+# Define it Perl-side:
+$context->define ('DEBUG_PRINT_INT1(val)' => q{
+	do {
+		printf("For " #val ", got %d\n", val);
+	} while (0)
+});
+
+$context->code('Body') .= q{
+	void test() {
+		int a = 1;
+		int b = 2;
+		DEBUG_PRINT_INT1(a);
+	}
+};
+$context->compile;
+$context->call_void_function("test");
+TEST_CODE
+
+like($results, qr/For a, got 1/, 'Multiline macros are ok');
 

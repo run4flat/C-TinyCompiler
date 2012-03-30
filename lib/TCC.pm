@@ -1,9 +1,11 @@
 package TCC;
 
-use 5.006;
+use 5.010;
 use strict;
 use warnings;
 use Carp;
+
+use warnings::register;
 
 =head1 NAME
 
@@ -20,11 +22,6 @@ BEGIN {
 	use XSLoader;
 	XSLoader::load 'TCC', $VERSION;
 }
-
-use constant CROAK  => 1;
-use constant WARN   => 2;
-use constant IGNORE => 3;
-our $REDEFINE = WARN;
 
 =head1 SYNOPSIS
 
@@ -50,13 +47,14 @@ compiled functons
 =head2 new
 
 Creates a new Tiny C Compiler context. All compiling and linking needs to be run
-in a context, so before creating any new code, you'll need to create a context.
+in a context, so before creating any new code, you'll need to create one of
+these.
 
 Arguments are simply the names of packages that you want applied to your
 compiler context. For example,
 
  my $context = TCC->new('::Perl::SV');
- my $context = TCC->new('::Perl::SV', ::Perl::AV');
+ my $context = TCC->new('::Perl::SV', '::Perl::AV');
 
 To learn more about adding packages to your compiler context, see
 L</apply_packages>.
@@ -102,13 +100,11 @@ example,
 Include paths are places to search when you say C<< #include <lib.h> >> or
 C<$include "mylib.h"> in your C source. The only difference between a system
 include path and a regular include path is that all regular include paths are
-searched before any system include paths.
-
-Items to note:
+searched before any system include paths. Other important things to know include
 
 =over
 
-=item quote-includes check '.', angle-bracket includes do not
+=item Quote-includes check '.' but angle-bracket includes do not
 
 The only difference between saying C<#include "mylib.h"> and
 C<< #include <mylib.h> >> is that the first one always looks for F<mylib.h>
@@ -118,7 +114,7 @@ I mean the working directory when the L</compile> function is invoked.
 
 =item Adding to the path is like using C<-I>
 
-Adding system include paths is similar to the C<-I> command line argument that
+Adding include paths is similar to the C<-I> command line argument that
 you get with most (all?) compilers.
 
 =item First added = first checked
@@ -126,34 +122,44 @@ you get with most (all?) compilers.
 Suppose you have files F<foo/bar.h> and F<foo/baz/bar.h> and you add both C<foo>
 and C<foo/baz> to your list of include paths. Which header will you get? The
 compiler will search through the include paths starting with the first path
-added. In other words, this will pull in F<foo/bar.h>:
+added. In other words, if your file layout looks like this:
+
+ foo/
+   bar.h
+   baz/
+     bar.h
+
+then this series of commands will pull in F<foo/bar.h> rather than
+F<foo/baz/bar.h>:
 
  use File::Spec;
- $context->add_include_paths('foo', File::Spec->catfile('foo', 'bar'));
+ $context->add_include_paths('foo', File::Spec->catfile('foo', 'baz'));
  $context->code('Head') .= {
      #include "bar.h"
  };
 
-=item the last include path is checked before the first sysinclude path
+=item The last include path is checked before the first sysinclude path
 
-When your C code has C<#include "lib.h">, the search process starts off looking
-in all directories that are in the include path list, followed by all the
-directories in the system include path list. This is important if you are
-writing a TCC package. If you want your user to potentially override a header
-file by adding an include path, you should specify any special include paths
-with the sysinclude.
+When your C code has C<#include "lib.h"> or C<< #include <lib.h> >>, the search
+process starts off looking in all directories that are in the include path list,
+followed by all the directories in the system include path list. This is
+important if you are writing a TCC package. If you want your user to potentially
+override a header file by adding an include path, you should specify any special
+include paths with the sysinclude.
 
 =item Backslashes and qw(), q()
 
 As a notational convenience, notice that you do not need to escape the
-backslashes for the Windows path when you use qw. That makes Windows paths
+backslashes for the Windows path when you use C<qw>. That makes Windows paths
 easier to read, especially when compared to normal single and double quoted
 strings.
 
 =item Nonexistent paths are OK
 
 Adding nonexistent paths will not trigger errors nor cause the compiler to
-croak, so it's ok if you throw in lots of distinct system-dependent paths.
+croak, so it's ok if you throw in system-dependent paths. It may lead to a minor
+performance hit when the compiler searches for include files, but that's not
+likely to be a real performance bottleneck.
 
 =item Path-separators are OK, but not cross-platform
 
@@ -168,17 +174,23 @@ separator. For example, this works on Linux:
 However, the path separator is system-specific, i.e. not cross-platform. Use
 sparingy if you want cross-platform code.
 
-=back
+=item No known exceptions
 
-All include paths must be set before calling L</compile>.
-
-It is possible that this will croak with this message:
+There is a line of code in these bindings that check for bad return values, and
+if triggered it will issue an error that reads thus:
 
  Unkown TCC error including path [%s]
 
-but as of the time of writing, TCC will never trigger that error, so I find it
-highly unlikely that you will ever see it. If you do, these docs and the code
+However, as of the time of writing, TCC will never trigger that error, so I find
+it highly unlikely that you will ever see it. If you do, these docs and the code
 need to be updated to query the source of the error and be more descriptive.
+
+=item Set paths before compiling
+
+This should be obvious, but it's worth pointing out that you must set the
+include paths before you L</compile>.
+
+=back
 
 =cut
 
@@ -203,8 +215,8 @@ sub get_error_message {
 This defines a preprocessor symbol (not to be confused with L</add_symbols>,
 which adds a symbol to the compiler lookup table). It takes the preprocessor
 symbol name and an optional string to which it should be expanded. This
-functions much like the C<-D> switch for the GNU C Compiler (and possibly
-others). In this way, having this in your Perl code
+functions much like the C<-D> switch for most (all?) compilers. In this way,
+having this in your Perl code 
 
  $context->define('DEBUG_PRINT_INT(val)'
      , 'printf("For " #val ", got %d\n", val)');
@@ -217,7 +229,7 @@ In fact, TCC even supports variadic macros, both directly in C code and using
 this method.
 
 =for details
-The above statements are covered in the test suite, 104-simple-compile.t
+The above statements are covered in the test suite, 112-compile-define.t
 
 Normally in C code, you might have such a definition within a C<#ifdef> block
 like this:
@@ -233,19 +245,35 @@ something like this:
 
  if ($context->{is_debugging}) {
      $context->define('DEBUG_PRINT_INT(val)'
-         , 'printf("For " #val ", got %d\n", val));
+         , 'printf("For " #val ", got %d\n", val)');
  }
  else {
      $context->define('DEBUG_PRINT_INT(val)');
  }
 
-The difference between these two is that in the former all the macro
-definitions are parsed by C<libtcc>, whereas in the latter all the Perl code is
-parsed by the Perl parser and C<libtcc> only deals with definitions when the
-C<define> function gets called. It's probably marginally faster to simply
-include C<#ifdef> and C<#define> in your C code, but you can retrieve the
-preset value of a preprocessor symbol in your Perl code if you use the C<define>
-method. It's a fairly minor tradeoff between flexibility and speed.
+Another nicety of Perl-side macros is that they can be defined as multi-line
+more cleanly. For example, this C macro
+
+ #define DEBUG_PRINT_INT(val) \
+     do { \
+         printf("For " #val ", got %d\n", val); \
+     } while (0)
+
+can be notated with a Perl-side define simply as
+
+ $context->define ('DEBUG_PRINT_INT(val)' => q{
+     do {
+         printf("For " #val ", got %d\n", val);
+     } while (0)
+ });
+
+There are differences between how Perl-side and C-side macro definitions
+operate, but arguably the
+most important is that the second form lets you query the definition from Perl.
+The overhead involved for such queries likely makes C<#define> statements in
+C code are marginally faster than Perl-side defines, but I have a hard time
+believing that is a real bottleneck in your code. I suggest you optimize this
+for developer time, not execution time.
 
 If you do not provide a symbol, an empty string will be used instead. This
 varies slightly form the C<libtcc> usage, in which case if you provide a null
@@ -253,31 +281,27 @@ pointer, the string "1" is used. Thus, if you want a value of "1", you will need
 to explicitly do that.
 
 If you attempt to modify a preprocessor symbol that has already been defined,
-the behavior will depend on the current (and potentially localized) value of
-C<$TCC::REDEFINE>, which can be any of the three values C<TCC::CROAK>,
-C<TCC::WARN>, or C<TCC::IGNORE>. The default behavior is to C<TCC::WARN> when
-you are about to redefine a preprocessor symbol.
+the behavior will depend on whether or not you have enabled C<TCC> warnings.
+These warnings are enabled if you say C<use warnings> in your code, so if you
+are like most people, these are probably on by default. If you want to suppress
+redefinition warnings for a small chunk of code, you should say something like
+this:
 
-You can set a localized value of C<$TCC::REDEFINE> like so:
-
- $context->define('SYMBOL21', 5);
- 
- # This will warn (by default):
- $context->define('SYMBOL21', 3);
- 
- # Create a lexical scope for the localization:
+ ...
  {
-     local $TCC::REDEFINE = TCC::IGNORE;
-     # This will be silent:
-     $context->define('SYMBOL21');
+     no warnings 'TCC';
+     $context->define('symbol', 'new_value');
  }
- 
- # This will warn again:
- $context->define('SYMBOL21', 3);
- 
+ ...
+
 Also, this function will croak if you attempt to modify a preprocessor symbol
-after you have compiled your code. If you want to check if the context has
-compiled, see L<has_compiled>.
+after you have compiled your code, saying:
+
+ Error defining [$symbol_name]:
+   Cannot modify a preprocessor symbol
+   after the compilation phase
+
+If you want to check if the context has compiled, see L</has_compiled>.
 
 =cut
 
@@ -286,8 +310,7 @@ sub define {
 	my $symbol_name = shift;
 	my $set_as = shift || '';
 	
-	# working here - is this already handled by the tcc checking and error
-	# handling?
+	# Give trouble if the compiler has already run.
 	croak("Error defining [$symbol_name]: Cannot modify a preprocessor symbol after the compilation phase")
 		if $self->{has_compiled};
 	
@@ -295,25 +318,19 @@ sub define {
 	$self->_define($symbol_name, $set_as);
 	$self->{pp_defs}->{$symbol_name} = $set_as;
 	
-	# XXX working here - consider using warnings::register
-	
 	# Report errors as requested:
 	if (my $message = $self->get_error_message) {
 		# Clean the message:
-		$message =~ s/<define>.*?$symbol_name //;
-		if ($TCC::REDEFINE eq CROAK) {
-			croak("Error defining [$symbol_name]: $message");
-		}
-		elsif($TCC::REDEFINE eq WARN) {
-			carp("Warning defining [$symbol_name]: $message");
-		}
+		$message =~ s/<define>:\d+: warning: //;
+		warnings::warnif($message);
 	}
 }
 
 =head2 is_defined
 
 Returns a boolean value indicating whether or not the given preprocessor symbol
-has been defined using the L<define> method. This is not aware of any C<#define>
+has been defined using the L</define> method. You can call this method both
+before and after compiling your code, but this is not aware of any C<#define>
 statements in your C code.
 
 For example:
@@ -335,9 +352,9 @@ sub is_defined {
 
 =head2 definition_for
 
-If you defined the given preprocessor macro using the L<define> method, this
-returns the (unexpanded) preprocessor definition that you supplied. If the
-was not defined using L<define> (or has subsequently been L<undefine>d), this
+If you defined the given preprocessor macro using the L</define> method, this
+returns the (unexpanded) preprocessor definition that you supplied. If the macro
+was not defined using L</define> (or has subsequently been L</undefine>d), this
 function will return Perl's C<undef>.
 
 For example:
@@ -353,10 +370,11 @@ For example:
 Bear in mind a number of important aspects of how this works. First, if the
 value is not defined, you will get an undefined value back; using this in a
 mathematical expression or trying to convert it to a string will make Perl 
-grumble if you C<use warnings>. Second, the values of 0 or the blank string are
-valid values even though these are false in boolean context. Thus, if you
-simply want to know if a preprocessor symbol is defined, you should use
-L<is_defined> instead. That is to say:
+grumble if you C<use warnings>. Second, the values of 0 or the blank string
+(blank strings are the default values if no value is supplied when you call
+L</define>) are valid values even though these are false in boolean context.
+Thus, if you simply want to know if a preprocessor symbol is defined, you should
+use L</is_defined> instead. That is to say:
 
  # BAD UNLESS YOU REALLY MEAN IT
  if ($context->definition_for('DEBUGGING')) {
@@ -382,7 +400,13 @@ any of the code has been compiled; you cannot apply this dynamically in the
 middle of the compilation process.
 
 This should not throw any errors. In particular, it should not gripe at you if
-the symbol was not defined to begin with.
+the symbol was not defined to begin with. However, it is still possible for
+something deep inside TCC to throw an error, in which case you will get an
+error message like this:
+
+ Error undefining preprocessor symbol [%s]: %s
+
+But I don't expect that to happen much.
 
 =cut
 
