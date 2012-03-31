@@ -230,7 +230,7 @@ $results = Capture::it(<<'TEST_CODE');
 use TCC;
 
 my $context= TCC->new;
-$context->add_include_paths qw(blarg foo);
+$context->add_include_paths (qw(blarg foo));
 
 $context->code('Body') = q{
 	#include "bar.h"

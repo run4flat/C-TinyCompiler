@@ -5,10 +5,17 @@ lib/TCC.xs
 MANIFEST			This list of files
 README
 typemap
-t/00-load.t
-t/100-new-and-destroy.t
-t/101-include.t
-t/102-define.t
+t/000-load.t
+t/010-new-and-destroy.t
+t/011-precompile-include.t
+t/012-precompile-define.t
+t/013-precompile-code-setters.t
+t/101-include.t~
+t/111-compile-include.t
+t/112-compile-define.t
+t/120-multiple-compile-states.t
+t/boilerplate.t
 t/manifest.t
 t/pod-coverage.t
 t/pod.t
+t/README
