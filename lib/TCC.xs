@@ -206,7 +206,7 @@ get_symbols(state, ...)
 		int i;
 	PPCODE:
 		EXTEND(SP, 2*items);
-		for (i = 0; i < items; i++) {
+		for (i = 1; i < items; i++) {
 			/* Get the tentative name */
 			symbol_name = SvPVbyte_nolen(ST(i));
 			
