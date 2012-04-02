@@ -9,6 +9,9 @@ use Test::More tests => 31;
 
 use inc::Capture;
 
+TODO: {
+local $TODO = 'libtcc does not yet support multiple compiler states';
+
 ############## one context, compile-call-compile-call-destroy: 5
 diag ('one context, compile-call-compile-call-destroy');
 
@@ -313,3 +316,5 @@ like($results, qr/Hello1 from TCC/, 'Call function from first compile');
 like($results, qr/Hello2 from TCC/, 'Call function from second compile');
 like($results, qr/Destroyed first context/, 'Safely destroy first context');
 like($results, qr/Destroyed second context/, 'Safely destroy second context');
+
+}; # TODO 

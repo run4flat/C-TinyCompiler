@@ -10,7 +10,6 @@ t/010-new-and-destroy.t
 t/011-precompile-include.t
 t/012-precompile-define.t
 t/013-precompile-code-setters.t
-t/101-include.t~
 t/111-compile-include.t
 t/112-compile-define.t
 t/120-multiple-compile-states.t
