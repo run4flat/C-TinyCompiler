@@ -21,24 +21,20 @@ MODULE = TCC           PACKAGE = TCC
 
 ############ Creation/Delection ############
 
-HV *
-_new()
+void
+_create_state(context)
+	HV * context
 	CODE:
-		/* create a new hashref */
-		RETVAL = newHV();
-		
 		/* create a new state with error handling */
 		TCCState * state = tcc_new();
 		if (!state) {
 			croak("Unable to create TCC compiler state!\n");
 		}
-		tcc_set_error_func(state, RETVAL, my_tcc_error_func);
+		tcc_set_error_func(state, context, my_tcc_error_func);
 		tcc_set_output_type(state, TCC_OUTPUT_MEMORY);
 		
 		/* Add the state to the context */
-		hv_store(RETVAL, "_state", 6, newSViv(PTR2IV(state)), 0);
-	OUTPUT:
-		RETVAL
+		hv_store(context, "_state", 6, newSViv(PTR2IV(state)), 0);
 
 void
 DESTROY(context)
@@ -47,16 +43,22 @@ DESTROY(context)
 		/* Retrieve and delete the state from the context */
 		SV * state_sv = hv_delete(context, "_state", 6, 0);
 		
-		/* Free the compiler state memory XXX not thread-safe */
-		IV state = SvIV(state_sv);
-		tcc_delete(INT2PTR(TCCState *, state));
+		/* The hv_delete will only return non-null if the _state actually 
+		 * existed. Of course, it's possible for somebody to create a compiler
+		 * state and never actually compile, in which case _state will not be
+		 * present. So, make sure we have something. */
+		if (state_sv != NULL) {
+			/* Free the compiler state memory XXX not thread-safe */
+			IV state = SvIV(state_sv);
+			tcc_delete(INT2PTR(TCCState *, state));
+		}
 
 ############ Preprocessor ############
 
 # The next two are pretty much direct copies of each other
 
 void
-add_include_paths(state, ...)
+_add_include_paths(state, ...)
 	TCCStateObj * state
 	PREINIT:
 		char * path_name;
@@ -73,7 +75,7 @@ add_include_paths(state, ...)
 		}
 
 void
-add_sysinclude_paths(state, ...)
+_add_sysinclude_paths(state, ...)
 	TCCStateObj * state
 	PREINIT:
 		char * path_name;
@@ -97,17 +99,17 @@ _define(state, symbol_name, value)
 	CODE:
 		tcc_define_symbol(state, symbol_name, value);
 
-void
-_undefine(state, symbol_name)
-	TCCStateObj * state
-	const char * symbol_name
-	CODE:
-		tcc_undefine_symbol(state, symbol_name);
+# void
+# _undefine(state, symbol_name)
+#	// TCCStateObj * state
+#	// const char * symbol_name
+#	// CODE:
+#		// tcc_undefine_symbol(state, symbol_name);
 
 ############ Libraries ############
 
 void
-add_libraries(state, ...)
+_add_libraries(state, ...)
 	TCCStateObj * state
 	PREINIT:
 		char * lib_name;
@@ -122,7 +124,7 @@ add_libraries(state, ...)
 		}
 
 void
-add_library_paths(state, ...)
+_add_library_paths(state, ...)
 	TCCStateObj * state
 	PREINIT:
 		char * path;
@@ -144,7 +146,7 @@ _compile(state, code)
 		if (ret != 0) croak("Compile error\n");
 
 void
-add_symbols(state, ...)
+_add_symbols(state, ...)
 	TCCStateObj * state
 	PREINIT:
 		char * symbol_name;
@@ -152,7 +154,7 @@ add_symbols(state, ...)
 	CODE:
 		/* Make sure we've got an even number of arguments (aside from self) */
 		if (items % 2 == 0) {
-			croak("You must supply key => value pairs to add_symbols\n");
+			croak("INTERNAL ERROR: _add_symbols should only get key => value pairs\n");
 		}
 		int i;
 		for (i = 1; i < items; i += 2) {
@@ -171,7 +173,7 @@ _relocate(state)
 
 ############ Post-Compiler ############
 void
-call_void_function(state, func_name)
+_call_void_function(state, func_name)
 	TCCStateObj * state
 	const char * func_name
 	CODE:
@@ -198,7 +200,7 @@ _call_function(state, func_name, input, output)
 		p_func(input, output);
 
 void
-get_symbols(state, ...)
+_get_symbols(state, ...)
 	TCCStateObj * state
 	PREINIT:
 		char * symbol_name;

@@ -5,12 +5,12 @@
 use 5.006;
 use strict;
 use warnings;
-use Test::More tests => 31;
+use Test::More tests => 26;
 
 use inc::Capture;
 
-TODO: {
-local $TODO = 'libtcc does not yet support multiple compiler states';
+#TODO: {
+#local $TODO = 'libtcc does not yet support multiple compiler states';
 
 ############## one context, compile-call-compile-call-destroy: 5
 diag ('one context, compile-call-compile-call-destroy');
@@ -34,71 +34,18 @@ print "Finished first compile\n";
 $context->call_void_function('print_hello1');
 
 # Remove the compile flag
-$context->{has_compiled} = 0;
 $context->code('Body') = q{
 	void print_hello2() {
 		printf("Hello2 from TCC\n");
 	}
 };
-$context->compile;
-print "Finished second compile\n";
-# Call the two compiled functions:
-$context->call_void_function('print_hello2');
-
-undef($context);
-print "Done\n";
-
-TEST_CODE
-
-like($results, qr/Finished first compile/, 'Completed first compile');
-like($results, qr/Hello1 from TCC/, 'Can call function from first compile');
-like($results, qr/Finished second compile/, 'Completed second compile');
-like($results, qr/Hello2 from TCC/, 'Can call function from second compile');
-like($results, qr/Done/, 'Destruction does not cause a segfault');
-
-
-
-############## one context, compile-compile-call-call-destroy: 5
-diag('one context, compile-compile-call-call-destroy');
-
-$results = Capture::it(<<'TEST_CODE');
-use strict;
-use warnings;
-use TCC;
-# Autoflush
-$|++;
-
-# Build the context with some simple code:
-my $context = TCC->new;
-$context->code('Body') = q{
-	void print_hello1() {
-		printf("Hello1 from TCC\n");
-	}
-};
-$context->compile;
-print "Finished first compile\n";
-# Remove the compile flag
-$context->{has_compiled} = 0;
-$context->code('Body') = q{
-	void print_hello2() {
-		printf("Hello2 from TCC\n");
-	}
-};
-$context->compile;
-print "Finished second compile\n";
-# Call the two compiled functions:
 eval {
-	$context->call_void_function('print_hello1');
-	1;
-} or do {
-	print "Unable to call print_hello1\n";
-};
-eval {
+	$context->compile;
+	print "Finished second compile\n";
+	# Call the two compiled functions:
 	$context->call_void_function('print_hello2');
 	1;
-} or do {
-	print "Unable to call print_hello2\n";
-};
+} or print $@;
 
 undef($context);
 print "Done\n";
@@ -106,10 +53,10 @@ print "Done\n";
 TEST_CODE
 
 like($results, qr/Finished first compile/, 'Completed first compile');
-like($results, qr/Finished second compile/, 'Completed second compile');
 like($results, qr/Hello1 from TCC/, 'Can call function from first compile');
-like($results, qr/Hello2 from TCC/, 'Can call function from second compile');
-like($results, qr/Done/, 'Destruction');
+like($results, qr/already been compiled/, 'Second compile fails');
+unlike($results, qr/Finished second compile/, 'Second compile fails (test 2)');
+like($results, qr/Done/, 'Destruction does not cause a segfault');
 
 
 
@@ -317,4 +264,4 @@ like($results, qr/Hello2 from TCC/, 'Call function from second compile');
 like($results, qr/Destroyed first context/, 'Safely destroy first context');
 like($results, qr/Destroyed second context/, 'Safely destroy second context');
 
-}; # TODO 
+#}; # TODO 

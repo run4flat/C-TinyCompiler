@@ -70,18 +70,27 @@ again.
 
 =cut
 
-my %is_valid_location = map { $_ => 1 } qw(Head Body Foot);
+my %is_valid_location = map { $_ => '' } qw(Head Body Foot);
 
 sub new {
 	my $class = shift;
 	
-	# Create a new context object:
-	my $self = bless _new;
-	
-	# Add some additional stuff to the context:
-	$self->{$_} = '' foreach keys %is_valid_location;
-	$self->{error_message} = '';
-	$self->{has_compiled} = 0;
+	# Create a new context object with the basics
+	my $self = bless {
+		error_message => '',
+		# Code locations
+		%is_valid_location,
+		# include paths
+		include_paths => [],
+		sysinclude_paths => [],
+		# library stuff
+		libraries => [],
+		library_paths => [],
+		# symbols (like function pointers)
+		symbols => {},
+		# Preprocessor definitions:
+		pp_defs => {},
+	};
 	
 	# Process any packages:
 	$self->apply_packages(@_);
@@ -208,6 +217,18 @@ include paths before you L</compile>.
 
 =back
 
+=cut
+
+sub add_include_paths {
+	my $self = shift;
+	push @{$self->{include_paths}}, @_;
+}
+
+sub add_sysinclude_paths {
+	my $self = shift;
+	push @{$self->{sysinclude_paths}}, @_;
+}
+
 =head2 add_library_paths
 
 Adds library paths, similar to using C<-L> for most compilers. For example,
@@ -220,6 +241,13 @@ would be equivalent to saying, on the command line:
 
 Notice that the paths are not checked for existence before they are added, and
 this function will never throw an error.
+
+=cut
+
+sub add_library_paths {
+	my $self = shift;
+	push @{$self->{library_paths}}, @_;
+}
 
 =head2 add_librarys
 
@@ -234,6 +262,14 @@ would be equivalent to saying, on the command line:
 If the compiler cannot find one of the requested libraries, it will croak saying
 
  Unable to add library %s
+
+=cut
+
+sub add_librarys {
+	my $self = shift;
+	push @{$self->{libraries}}, @_;
+}
+
 
 =head2 define
 
@@ -335,19 +371,15 @@ sub define {
 	my $symbol_name = shift;
 	my $set_as = shift || '';
 	
-	# Give trouble if the compiler has already run.
-	croak("Error defining [$symbol_name]: Cannot modify a preprocessor symbol after the compilation phase")
-		if $self->{has_compiled};
-	
-	# Set the value in the compiler state:
-	$self->_define($symbol_name, $set_as);
-	$self->{pp_defs}->{$symbol_name} = $set_as;
-	
-	# Report errors as requested:
-	if (my $message = $self->get_error_message) {
-		# Clean the message:
-		$message =~ s/<define>:\d+: warning: //;
-		warnings::warnif($message);
+	# Give a warning if the compiler has already run.
+	if ($self->has_compiled) {
+		warnings::warnif("Setting preprocessor definition for $symbol_name after the compilation phase has no effect");
+	}
+	else {
+		# Set the value in the compiler state:
+		warnings::warnif("Redefining $symbol_name")
+			if exists $self->{pp_defs}->{$symbol_name};
+		$self->{pp_defs}->{$symbol_name} = $set_as;
 	}
 }
 
@@ -437,12 +469,14 @@ But I don't expect that to happen much.
 
 sub undefine {
 	my ($self, $symbol_name) = @_;
-	# Remove the value in the compiler state and in the local cache:
-	$self->_undefine($symbol_name);
-	delete $self->{pp_defs}->{$symbol_name};
 	
-	# Croak if anything happened:
-	$self->report_if_error("Error undefining preprocessor symbol [$symbol_name]: MESSAGE");
+	# Give a warning if the compiler has already run.
+	if ($self->has_compiled) {
+		warnings::warnif("Removing preprocessor definition for $symbol_name after the compilation phase has no effect");
+	}
+	else {
+		delete $self->{pp_defs}->{$symbol_name};
+	}
 }
 
 =head2 code
@@ -499,6 +533,9 @@ If you have a compiler error, line numbers will be meaningless if you do not
 tell the compiler the line on which the code is run. To do this properly, use
 L</line_number>, discussed below.
 
+working here - note that warnings are not issued for changing code values after
+the compilation phase, but such changes can have no effect.
+
 =cut
 
 # Valid locations are defined in %is_valid_location, created near the
@@ -512,7 +549,7 @@ sub code :lvalue {
 	# Make sure they supplied a meaningful location:
 	croak("Unknown location $location; must be one of "
 		. join(', ', keys %is_valid_location))
-			unless $is_valid_location{$location};
+			unless exists $is_valid_location{$location};
 	
 	$self->{$location};
 }
@@ -692,7 +729,27 @@ sub compile {
 	# Make sure we haven't already compiled with this context:
 	croak('This context has already been compiled') if $self->has_compiled;
 	
-	# Assemble the code (with primitive section indicators):
+	# Create the actual TCCState object:
+	$self->_create_state;
+	
+	# Apply the #defines and add the #include paths
+	my %defs = %{$self->{pp_defs}};
+	while (my ($name, $value) = each %defs) {
+		$self->_define($name, $value);
+		$self->report_if_error("Error defining preprocessor symbol [$name]: MESSAGE");
+	}
+	
+	$self->_add_include_paths(@{$self->{include_paths}});
+	$self->_add_sysinclude_paths(@{$self->{sysinclude_paths}});
+	$self->report_if_error("Error adding include path(s): MESSAGE");
+	
+	# Add the library stuff:
+	$self->_add_library_paths(@{$self->{library_paths}});
+	$self->report_if_error("Error adding library path(s): MESSAGE");
+	$self->_add_libraries(@{$self->{libraries}});
+	$self->report_if_error("Error adding library(s): MESSAGE");
+	
+	# Assemble the code (with primitive section indicators) and compile!
 	eval {
 		my $code = '';
 		for my $section (qw(Head Body Foot)) {
@@ -720,10 +777,12 @@ sub compile {
 		croak("Unable to compile for unknown reasons");
 	};
 	
-	# Apply the pre-compiled symbols:
+	# Apply the pre-compiled symbols (function pointers, etc):
 	while (my ($package, $options) = each %{$self->{applied_package}}) {
 		$package->apply_symbols($self, @$options);
 	}
+	$self->_add_symbols(%{$self->{symbols}});
+	$self->report_if_error("Error adding symbols: MESSAGE");
 
 	# Relocate
 	eval {
@@ -735,9 +794,6 @@ sub compile {
 		# Report an unknown relocation issue if not known:
 		croak("Unable to relocate for unknown reasons");
 	};
-	
-	# Finish by setting the "compiled" flag:
-	$self->{has_compiled} = 1;
 }
 
 =head2 add_symbols
@@ -769,6 +825,22 @@ If you fail to provide key/value pairs, this function will croak saying
 
  You must supply key => value pairs to add_symbols
 
+=cut
+
+sub add_symbols {
+	my $self = shift;
+	croak('You must supply key => value pairs to add_symbols')
+		unless @_ % 2 == 0;
+	
+	my %symbols = @_;
+	while (my ($symbol, $pointer) = each %symbols) {
+		# Track the symbols, warning on redefinitions
+		warnings::warnif("Redefining $symbol")
+			if exists $self->{symbols}->{$symbol};
+		$self->{symbols}->{$symbol} = $pointer;
+	}
+}
+
 =head1 POST-COMPILE METHODS
 
 These are methods you can call on your context after you have compiled the
@@ -798,6 +870,8 @@ pointer (rather than the symbol name/pointer pair). For example,
 
 sub get_symbol {
 	my ($self, $symbol_name) = @_;
+	croak("Cannot retrieve symbol $symbol_name before compiling")
+		unless $self->has_compiled;
 	my (undef, $to_return) = $self->get_symbols($symbol_name);
 	return $to_return;
 }
@@ -813,7 +887,23 @@ definition:
  }
 
 This is pretty dumb because it is nearly impossible to pass parameters into the
-function, but is useful for testing purposes.
+function, but is useful for testing purposes. Note that if you try to call it
+before you have compiled, you will get this message:
+
+ Cannot call a function before the context has compiled.
+
+=cut
+
+sub call_void_function {
+	my ($self, $function) = @_;
+	
+	# Make sure we've compiled
+	croak('Cannot call a function before the context has compiled.')
+		unless $self->has_compiled;
+	
+	# Call the XS function:
+	$self->_call_void_function($function);
+}
 
 =head2 call_function
 
@@ -832,6 +922,11 @@ For more details, see the section L</Writing Functions> below.
 
 sub call_function {
 	my $self = shift;
+	
+	# Make sure we've compiled
+	croak('Cannot call a function before the context has compiled.')
+		unless $self->has_compiled;
+	
 	my $func_name = shift;
 	my @to_return;
 	eval {
@@ -845,12 +940,6 @@ sub call_function {
 	return @to_return;
 }
 
-=head2 todo
-
-These are the functions I would like to create:
-
-=cut
-
 =head2 has_compiled
 
 An introspection method to check if the context has compiled it code or not. You
@@ -861,7 +950,7 @@ but you will not be able to recompile it.
 
 sub has_compiled {
 	my $self = shift;
-	return $self->{has_compiled};
+	return exists $self->{_state};
 }
 
 # working here - consider using namespace::clean?
