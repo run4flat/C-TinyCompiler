@@ -77,7 +77,7 @@ sub new {
 	
 	# Create a new context object with the basics
 	my $self = bless {
-		has_compiled = 0,
+		has_compiled => 0,
 		error_message => '',
 		# Code locations
 		%is_valid_location,
@@ -810,6 +810,7 @@ sub compile {
 	while (my ($package, $options) = each %{$self->{applied_package}}) {
 		$package->apply_symbols($self, @$options);
 	}
+	# Apply any other symbols that were added:
 	$self->_add_symbols(%{$self->{symbols}});
 	$self->report_if_error("Error adding symbols: MESSAGE");
 
@@ -861,6 +862,9 @@ If you fail to provide key/value pairs, this function will croak saying
 
 sub add_symbols {
 	my $self = shift;
+	
+	# working here - not sure if it's safe to add symbols after relocation.
+	
 	croak('You must supply key => value pairs to add_symbols')
 		unless @_ % 2 == 0;
 	
@@ -910,7 +914,7 @@ sub get_symbol {
 
 =head2 call_void_function
 
-Takes the name of a a compiled function and calls it without passing any
+Takes the name of a compiled function and calls it without passing any
 arguments. In other words, this assumes that your function has the following
 definition:
 
