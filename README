@@ -1,16 +1,21 @@
 TCC
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
+These are Perl bindings to the Tiny C Compiler (TCC). TCC is a very fast, very
+small, and nearly compliant C-99 compiler (sans complex numbers, I believe).
+Some benchmarks claim that TCC compiles 7x faster than GCC.
 
-A README file is required for CPAN modules since CPAN extracts the README
-file from a module distribution so that people browsing the archive
-can use it to get an idea of the module's uses. It is usually a good idea
-to provide version information here so that people can decide whether
-fixes for the module are worth downloading.
+Another important feature of TCC is that it can compile a string of C code to
+machine code without writing to file. In other words, it can be used as a Just
+In Time C compiler!
 
+If you do not yet see my point, then consider this: Perl has excellent string
+manipulation facilities. By combining Perl's ability to manipulate strings and
+TCC's ability to quickly compile C code, we have an easy, fast way to
+dynamically generate machine code. Perl's bytecode is fast, of course, but for
+certain numerical work, this can lead to operations that are orders of magnitude
+faster.
+
+(Though, admitedly, I don't yet have the benchmarks to prove my point.)
 
 INSTALLATION
 
@@ -43,9 +48,11 @@ You can also look for information at:
         http://search.cpan.org/dist/TCC/
 
 
-LICENSE AND COPYRIGHT
+AUTHOR AND COPYRIGHT
 
-Copyright (C) 2011 David Mertens
+Written by David Mertens, Copyright 2011-2012 Northwestern University
+
+LICENSE
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
