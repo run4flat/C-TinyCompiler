@@ -99,13 +99,6 @@ _define(state, symbol_name, value)
 	CODE:
 		tcc_define_symbol(state, symbol_name, value);
 
-# void
-# _undefine(state, symbol_name)
-#	// TCCStateObj * state
-#	// const char * symbol_name
-#	// CODE:
-#		// tcc_undefine_symbol(state, symbol_name);
-
 ############ Libraries ############
 
 void
