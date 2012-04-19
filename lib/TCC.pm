@@ -77,6 +77,7 @@ sub new {
 	
 	# Create a new context object with the basics
 	my $self = bless {
+		has_compiled = 0,
 		error_message => '',
 		# Code locations
 		%is_valid_location,
@@ -213,20 +214,40 @@ need to be updated to query the source of the error and be more descriptive.
 =item Set paths before compiling
 
 This should be obvious, but it's worth pointing out that you must set the
-include paths before you L</compile>.
+include paths before you L</compile>. If you try to set include paths after
+compilation, you will not cause any change in the context's state; if you have
+warnings enabled, you will get a message like:
+
+ Adding include paths after the compilation phase has no effect.
+
+or
+
+ Adding sysinclude paths after the compilation phase has no effect.
 
 =back
 
 =cut
 
+sub _add_paths {
+	my ($self, $type) = (shift, shift);
+	
+	# Give a warning if the compiler has already run.
+	if ($self->has_compiled) {
+		warnings::warnif("Adding $type paths after the compilation phase has no effect.");
+	}
+	else {
+		push @{$self->{"${type}_paths"}}, @_;
+	}
+}
+
 sub add_include_paths {
 	my $self = shift;
-	push @{$self->{include_paths}}, @_;
+	$self->_add_paths('include', @_);
 }
 
 sub add_sysinclude_paths {
 	my $self = shift;
-	push @{$self->{sysinclude_paths}}, @_;
+	$self->_add_paths('sysinclude', @_);
 }
 
 =head2 add_library_paths
@@ -239,14 +260,17 @@ would be equivalent to saying, on the command line:
 
  cc ... -LC:\\mylibs -L/usr/home/david/libs ...
 
-Notice that the paths are not checked for existence before they are added, and
-this function will never throw an error.
+Notice that the paths are not checked for existence before they are added. Also,
+adding library paths after the compilation phase has no effect and, if you have
+warnings enabled, will issue this statement:
+
+ Adding library paths after the compilation phase has no effect.
 
 =cut
 
 sub add_library_paths {
 	my $self = shift;
-	push @{$self->{library_paths}}, @_;
+	$self->_add_paths('library', @_);
 }
 
 =head2 add_librarys
@@ -259,14 +283,20 @@ would be equivalent to saying, on the command line:
 
  cc ... -llibgsl -llibcairo ...
 
+You must perform all additions before the compilation phase.
+
 If the compiler cannot find one of the requested libraries, it will croak saying
 
  Unable to add library %s
+
 
 =cut
 
 sub add_librarys {
 	my $self = shift;
+	if ($self->has_compiled) {
+		
+	}
 	push @{$self->{libraries}}, @_;
 }
 
@@ -738,7 +768,6 @@ sub compile {
 		$self->_define($name, $value);
 		$self->report_if_error("Error defining preprocessor symbol [$name]: MESSAGE");
 	}
-	
 	$self->_add_include_paths(@{$self->{include_paths}});
 	$self->_add_sysinclude_paths(@{$self->{sysinclude_paths}});
 	$self->report_if_error("Error adding include path(s): MESSAGE");
@@ -794,6 +823,9 @@ sub compile {
 		# Report an unknown relocation issue if not known:
 		croak("Unable to relocate for unknown reasons");
 	};
+	
+	# Mark the compiler as post-compile
+	$self->{has_compiled} = 1;
 }
 
 =head2 add_symbols
@@ -940,6 +972,19 @@ sub call_function {
 	return @to_return;
 }
 
+=head2 is_compiling
+
+An introspection method to check if the context is currently in the compile
+phase. This is particularly useful for packages whose behavior may depend on
+whether they are operating pre-compile, post-compile, or during compile.
+
+=cut
+
+sub is_compiling {
+	my $self = shift;
+	return exists $self->{_state} and not $self->{has_compiled};
+}
+
 =head2 has_compiled
 
 An introspection method to check if the context has compiled it code or not. You
@@ -950,7 +995,7 @@ but you will not be able to recompile it.
 
 sub has_compiled {
 	my $self = shift;
-	return exists $self->{_state};
+	return $self->{has_compiled};
 }
 
 # working here - consider using namespace::clean?
