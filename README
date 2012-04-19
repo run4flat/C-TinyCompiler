@@ -1,12 +1,12 @@
 TCC
 
-These are Perl bindings to the Tiny C Compiler (TCC). TCC is a very fast, very
-small, and nearly compliant C-99 compiler (sans complex numbers, I believe).
-Some benchmarks claim that TCC compiles 7x faster than GCC.
-
-Another important feature of TCC is that it can compile a string of C code to
-machine code without writing to file. In other words, it can be used as a Just
-In Time C compiler!
+These are Perl bindings to the Tiny C Compiler (TCC). TCC is a very fast, very 
+small, and nearly compliant C-99 compiler (sans complex numbers, I believe). 
+Some benchmarks claim that TCC compiles 7x faster than GCC. TCC does not apply 
+the same sorts of optimizations as GCC, mind you, but it still compiles to 
+machine code. Another important feature of TCC is that it can compile a string 
+of C code to machine code without writing to file. In other words, it can be 
+used as a Just In Time C compiler!
 
 If you do not yet see my point, then consider this: Perl has excellent string
 manipulation facilities. By combining Perl's ability to manipulate strings and
