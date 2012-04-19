@@ -49,7 +49,7 @@ TCC::Perl - Enabling Perl's full C-API in your TCC compiler context
 
  use TCC;
  
- # Declare the compiler context with the AV bindings:
+ # Declare the compiler context with the Perl bindings:
  my $context= TCC->new('::Perl');
  
  # Or add them afterwards:
@@ -58,9 +58,9 @@ TCC::Perl - Enabling Perl's full C-API in your TCC compiler context
  
  # Create a function that tells us how many arguments we sent:
  $context->code('Body') = q{
- 	void test_func(AV * inputs, AV * outputs) {
- 		printf("You sent %d arguments\n", av_len(inputs));
- 	}
+     void test_func(AV * inputs, AV * outputs) {
+         printf("You sent %d arguments\n", av_len(inputs));
+     }
  };
  
  # Compile and call:
