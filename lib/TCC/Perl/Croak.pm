@@ -89,41 +89,105 @@ This module provides Perl's C interface to both the traditional and variadic
 forms of warn and croak. These allow you to write defensive C code without
 needing the full Perl C api to do it.
 
-various Perl array manipulate functions to the compiler
-context. Eventually it will contain options so that you can specify which parts
-of the API you want, but for now it comes in one big bunch (or as much of it as
-I have packaged thus far).
-
 Like other TCC packages, you never use this module directly. Rather, you
 add it to your compiler context in the constructor or with the function
 L<TCC/apply_packages>.
 
-Documentation for all of these functions can be found at L<perlapi>, so I will
-only give their names and signatures here for reference (and possibly a few
-notes if I deem them to be helpful).
+You can find documentation for these functions at L<perlapi>. However, the
+discussion of the variadic forms of is not terribly illuminating, so I provide
+a few examples below.
 
 =over
 
-=item av_clear
+=item *
 
- void av_clear (AV * array)
+ void croak(const char *pat, ...)
 
-=item av_len
+Provides printf-style croaking that integrates with Perl's C<die> and other
+error handling. For example:
 
- int av_len (AV * array)
+ ...
+ /* Allocate 10 elements */
+ int n_elements = 10;
+ double * my_array = malloc(n_elements * sizeof(double));
+ if (my_array == 0) {
+     /* Clean up anything else */
+     ...
+     /* Croak with error message */
+     croak("Unable to allocate double array with %d elements", n_elements);
+ }
+ /* otherwise continue */
 
-=item av_fetch
+Since this uses Perl's error handling, this croak can be captured in your Perl
+code with an C<eval> block.
 
- SV ** av_fetch (AV * array, int key, int lval)
+The croak performs a C<lngjmp>, so you will B<never get control back>. That
+means that if you allocated some memory dynamically, you must clean up that
+memory before croaking or it will leak.
 
-Fetches the requested item from the array, creating it if necessary. The usage
-is descriped in L<perlapi>. I simply wish to point out that in my experience,
-the only time the returned pointer to the SV is only null is when I try to
-retrieve a non-existent array element B<not> in lvalue context. (I suspect that
-it may also return null in lvalue context if Perl is unable to allocate the
-contiguous memory for C<key> elements, but I have not confirmed that.) The point
-is that you B<ought to> check that the returned pointer is non-null before
-dereferencing it.
+=item *
+
+ void warn(const char *pat, ...);
+
+Provides printf-style warning that integrates with Perl's C<warn> function:
+
+ ...
+ if (my_intput < 0) {
+     warn("Input was negative (%f) but it must be strictly positive; using zero", my_input);
+     my_input = 0.0;
+ }
+
+=item *
+
+ void vcroak(const char *pat, va_list *args);
+
+A variadic version of C<croak>. This is useful when you create your own variadic
+function. For example, if you want to create your own croak that cleans up
+memory for you, you could try something like this:
+
+ void my_croak (void ** to_free, int N_to_free, const char * pat, ...) {
+     /* Free any allocated memory */
+     while (N_to_free > 0) free(to_free[--N_to_free]);
+     
+     /* Now throw the croak */
+     va_list args;
+     vcroak(pat, &args);
+ }
+ 
+ ...
+ 
+ void my_func (int arg1, int arg2) {
+     void * my_arrays [10];
+     /* Set them all to zero */
+     int i;
+     for (i = 0; i < 10; my_arrays[i++] = 0);
+     
+     ... allocate some memory, add the pointers to to_free ...
+     
+     if (foo > upper_limit) {
+         my_croak(my_arrays, 10, "Trouble! foo (%f) is greater than the upper limit (%f)!"
+             , foo, upper_limit);
+     }
+ }
+
+(Note that L<TCC::StretchyBuffers> is probably the easiest way to handle such a
+dynamic list of arrays that need to be freed.)
+
+Just to be crystal clear, if you use this to wrap your variadic function, you
+must obtain your C<va_list> like so:
+
+ void my_croak(char * pat, ...) {
+     ...
+     
+     va_list args;
+     vcroak(pat, &args);
+ }
+
+=item *
+
+ void vwarn(const char *pat, va_list *args);
+
+A variadic version of C<warn>. See the discussion on C<vcroak> above.
 
 =back
 
@@ -165,10 +229,6 @@ L<http://cpanratings.perl.org/d/TCC>
 L<http://search.cpan.org/dist/TCC/>
 
 =back
-
-
-=head1 ACKNOWLEDGEMENTS
-
 
 =head1 LICENSE AND COPYRIGHT
 
