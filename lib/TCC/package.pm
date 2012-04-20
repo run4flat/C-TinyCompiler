@@ -20,6 +20,11 @@ sub apply {
 	# empty apply
 }
 
+sub conflicts_with {
+	# doesn't conflict with anything
+	0;
+}
+
 sub apply_symbols {
 	# empty apply_symbols
 }

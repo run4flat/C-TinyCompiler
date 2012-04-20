@@ -85,7 +85,7 @@ how you define I<real> (as well as many blank lines), which is why I consider it
 to be quite a blunt tool.
 
 (What follows is what I *hope* happens, though it is not yet the reality.) This
-great weight is the reason the TCC::Perl::* sub-modules exist. They pull in and
+weight is the motivation for the TCC::Perl::* sub-modules. They pull in and
 define only the exact code that you need.
 
 =head1 ERROR MESSAGES

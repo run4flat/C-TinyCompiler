@@ -658,7 +658,7 @@ package name and enclosed by parentheses:
  $context->apply_packages qw(::Perl::SV(most) ::Perl::AV(basic))
 
 You can call this function multiple times with different package names. However,
-a package can only be applied once, even if you specify different package
+a package will only be applied once, even if you specify different package
 options. Thus, the following will not work:
 
  $context->apply_packages '::Perl::SV(basic)';
@@ -692,6 +692,8 @@ and will complain saying:
  Error: package specification cannot start with parenthesis: '(basic)'
      Is this supposed to be an option for the previous package?
 
+For more discussion on packages, see L</MANAGING PACKAGES>.
+
 =cut
 
 sub apply_packages {
@@ -719,7 +721,7 @@ sub apply_packages {
 		}
 		
 		# Skip if already applied
-		next PACKAGE if $self->{applied_package}->{$package_spec};
+		next PACKAGE if $self->is_package_known($package_spec);
 		
 		# Pull in the package if it doesn't already exist:
 		unless ($package_spec->can('apply')) {
@@ -729,11 +731,94 @@ sub apply_packages {
 			croak($@) if $@;
 		}
 		
-		# Apply the package, storing the options (for use later under the
-		# symbol application).
-		$package_spec->apply($self, @options);
-		$self->{applied_package}->{$package_spec} = [@options];
+		# Make sure we don't have any conflicting packages:
+		if ($package_spec->conflicts_with($self, keys %{$self->{applied_package}})
+			or grep {$_->conflicts_with($self, $package_spec)} keys %{$self->{applied_package}}
+		) {
+			# If there's a conflict, then mark the package as blocked
+			$self->block_package($package_spec);
+		}
+		else {
+			# Apply the package, storing the options (for use later under the
+			# symbol application).
+			$package_spec->apply($self, @options);
+			$self->{applied_package}->{$package_spec} = [@options];
+		}
 	}
+}
+
+=head1 MANAGING PACKAGES
+
+Certain packages require other packages, and some packages do not play nicely
+together. The current package management system is not very sophisticated, but
+it does provide a means for packages to indicate dependencies and conflicts with
+others. In general, all of this should be handled by the packages and manual
+intervention from a user should usually not be required.
+
+As far as the compiler is concerned, a package can be in one of three
+states: (1) applied, (2) blocked, or (3) unknown. An applied package is any
+package that you have applied directly or which has been pulled in as a package
+dependency (but which has not been blocked). A blocked package is one that
+should should not be applied. An unknown package is one that simply has not
+been applied or blocked.
+
+As an illustration of this idea, consider the L<TCC::Perl> package and the
+light-weight sub-packages like L<TCC::Perl::Croak>. The light-weight packages
+provide a exact subset of L<TCC::Perl>, so if L<TCC::Perl> is loaded, the
+sub-packages need to ensure that they do not apply themselves or, if they have
+already been applied, that they remove themselves. This check and manipulation
+occurs during the sub-packages' call to C<conflicts_with>
+
+=head2 is_package_applied, is_package_blocked, is_package_known
+
+Three simple methods to inquire about the status of a package. These return
+boolean values indicating whether the package (1) is currently being applied, 
+(2) is currently blocked, or (3) is either being applied or blocked.
+
+=cut
+
+sub is_package_applied {
+	my ($self, $package) = @_;
+	return exists $self->{applied_package}->{$package};
+}
+
+sub is_package_blocked {
+	my ($self, $package) = @_;
+	return exists $self->{blocked_package}->{$package};
+}
+
+sub is_package_known {
+	my ($self, $package) = @_;
+	return $self->is_package_applied($package)
+		or $self->is_package_blocked($package);
+}
+
+=head2 block_package
+
+Blocks the given package and removes its args from the applied package list if
+it was previously applied.
+
+=cut
+
+sub block_package {
+	my ($self, $package) = @_;
+	delete $self->{applied_package}->{$package};
+	$self->{blocked_package}->{$package} = 1;
+}
+
+=head2 get_package_args
+
+Returns the array ref containing the package arguments that were supplied when
+the package was applied (or an empty array ref if the package was never applied
+or has subsequently been blocked). This is the actual array reference, so any
+manipulations to this array reference will effect the reference returned in
+future calls to C<get_package_args>.
+
+=cut
+
+sub get_package_args {
+	my ($self, $package) = shift;
+	return $self->{applied_package}->{$package} || [];
 }
 
 =head1 COMPILE METHODS
