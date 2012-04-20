@@ -974,6 +974,13 @@ of pairs as
 
  symbol_name => pointer
 
+=cut
+
+sub get_symbols {
+	croak('Cannot retrieve symbols before compiling') unless $_[0]->has_compiled;
+	goto &_get_symbols;
+}
+
 =head2 get_symbol
 
 Like L</get_symbols>, but only expects a single symbol name and only returns the
