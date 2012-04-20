@@ -6,7 +6,10 @@ use parent 'TCC::package';
 sub apply {
 	my (undef, $state) = @_;
 	
-	# Add the stretchy buffer code:
+	# Make sure we have Perl's croak
+	$state->apply_packages('TCC::Perl::Croak');
+	
+	# Add the stretchy buffer code
 	$state->code('Head') .= TCC::line_number(__LINE__) . q{
 	
 		#define sbfree(a)         ((a) ? free(stb__sbraw(a)),0 : 0)
@@ -19,7 +22,6 @@ sub apply {
 		#define sblast(a)         ((a)[stb__sbn(a)-1])
 
 		#include <stdlib.h>
-		#include <assert.h>
 		#define stb__sbraw(a) ((int *) (a) - 2)
 		#define stb__sbm(a)   stb__sbraw(a)[0]
 		#define stb__sbn(a)   stb__sbraw(a)[1]
@@ -32,8 +34,7 @@ sub apply {
 		{
 			int m = *arr ? 2*stb__sbm(*arr)+increment : increment+1;
 			void *p = realloc(*arr ? stb__sbraw(*arr) : 0, itemsize * m + sizeof(int)*2);
-			/* XXX working here - switch to Perl's croak for this */
-			assert(p);
+			if (p == 0) croak("Unable to allocate StretchyBuffer memory!");
 			if (p) {
 				if (!*arr) ((int *) p)[1] = 0;
 				*arr = (void *) ((int *) p + 2);
