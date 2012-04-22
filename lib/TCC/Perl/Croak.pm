@@ -25,12 +25,10 @@ sub apply {
 }
 
 sub conflicts_with {
-	my (undef, $state, @packages) = @_;
+	my ($package, $state, @packages) = @_;
 	
 	# If Perl is not among the listed packages, we have no conflicts
 	return 0 unless grep { $_ eq 'TCC::Perl' } @packages;
-	
-	my $package = __PACKAGE__;
 	
 	# If we're here, we know that Perl *is* among the @packages, so we have a
 	# conflict. If this package has not been applied, then we can simply return
@@ -40,7 +38,7 @@ sub conflicts_with {
 	# We can only reach this line of code if this package *has* been applied and
 	# we're about to apply TCC::Perl. As such, remove our code from the header
 	# and block our own package.
-	$state->code('Header') =~ s{/\* BEGIN $package .*"whatever comes after $package"}{}s;
+	$state->code('Head') =~ s{/\* BEGIN $package .*"whatever comes after $package"}{}s;
 	$state->block_package($package);
 	
 	# Don't register a conflict with TCC::Perl; it has been resolved on our end :-)

@@ -476,7 +476,7 @@ sub definition_for {
 =head2 undefine
 
 Undefines the given preprocessor symbol name. Remember that this happens before
-any of the code has been compiled; you cannot apply this dynamically in the
+any of the code has been compiled; you cannot call this dynamically in the
 middle of the compilation process.
 
 This should not throw any errors. In particular, it should not gripe at you if
