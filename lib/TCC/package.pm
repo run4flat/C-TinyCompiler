@@ -79,7 +79,7 @@ TCC::package - base module for TCC packages
 
 =head1 SYNOPSIS
 
-Here's an skeleton module for something that is meant to be a drop-in,
+Here's a skeleton module for something that is meant to be a drop-in,
 ostensibly light-weight replacement for some big package called (generically)
 TCC::BigPackage.
 
@@ -159,16 +159,21 @@ TCC::BigPackage.
 TCC Packages provide a means to easily integrate C code and libraries into a
 compiler context. They are akin to Perl modules, although applying them to a
 compiler state is a bit different compared to saying C<use My::Module> in Perl.
+Most importantly, you can request a package multiple times without fear of
+trouble: each package is applied to a compiler context only once.
 
 One of the first differences is that each package is asked if it conflicts with
 other packages that have been applied or are being applied. Although
 incompatibilities between packages should not arise very often, this mechanism
 provides a means for gracefully handling known conflicts between packages.
 
-All packages are applied to the entire compiler context. The compiler
-context has no notion of lexical packages.
+Another difference is that all packages are applied to the entire compiler
+context. The compiler context has no notion of lexical packages. (libtcc itself
+supports the notion of compiling multiple strings, much like compiling multiple
+files, so it may be possible to get lexical scoping of some sort using this
+mechanism. Patches welcome! :-)
 
-Generally speaking, packages can accomplish these basic features:
+Generally speaking, packages can accomplish these basic tasks:
 
 =over
 
