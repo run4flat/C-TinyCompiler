@@ -29,6 +29,10 @@ sub apply_symbols {
 	# empty apply_symbols
 }
 
+sub preprocess {
+	# No preprocessing
+}
+
 sub import {
 	my $module = shift;
 	# Build a hash with keys as currently used package names:

@@ -56,17 +56,10 @@ compiler context. For example,
  my $context = TCC->new('::Perl::SV');
  my $context = TCC->new('::Perl::SV', '::Perl::AV');
 
-To learn more about adding packages to your compiler context, see
-L</apply_packages>.
-
-This constructor will only croak if F<libtcc> is unable to allocate the storage
-needed for the compiler state, in which case you will receive this message:
-
- Unable to create TCC compiler state!
-
-This likely means that your system is running low on resources and you will need
-to take some drastic measures (like freeing up some memory) before you try
-again.
+TCC packages are to TCC what modules are to Perl. They add some sort of
+functionality to the compiler context, whether that's a set of functions or some
+fancy source filtering. To learn more about adding packages to your compiler
+context, see L</apply_packages>.
 
 =cut
 
@@ -834,7 +827,87 @@ symbols from the included packages, and relocates the code so that symbols can
 be retrieved. In short, this is the transformative step that converts your code
 from ascii into machine.
 
-working here - document error messages
+This step does far more than simply invoke libtcc's compile function. At the
+time of writing, TCC only supports a single uncompiled compiler state at a time.
+To properly handle this, TCC.pm defers creating the actuall TCCState object as
+long as possible. Calling the C<compile> method on your compiler context
+actually performs these steps:
+
+=over
+
+=item 1. Create TCCState
+
+An actual TCCState struct is created, to which the following operations are
+applied.
+
+=item 2. Apply preprocessor definitions, paths, libraries
+
+All preprocessor defintions, include paths, library paths, and libraries are
+added to the compiler state.
+
+=item 3. Code assembly and compilation
+
+The code is assembled and compiled.
+
+=item 4. Apply symbols and relocate the machine code
+
+Symbols (such as dynamically loaded functions) are applied, the final machine
+code is relocated, and the memory pages holding that code are marked as
+executable.
+
+=back
+
+This means that nearly all of the interaction with libtcc itself is deferred
+until you call this function. As each of those interactions could encounter
+trouble, this function may croak for many reasons.
+
+=over
+
+=item This context has already been compiled
+
+You are only allowed to compile a context once.
+
+=item Error defining processor symbol <name>: <message>
+
+TCC encountered trouble while trying to define the given preprocessor symbol.
+Duplicate preprocessor symbols should not occurr at this stage, so this error
+likely means that your definition is malformed.
+
+=item Error adding include path(s): <message>
+=item Error adding library path(s): <message>
+
+An include path, sysinclude path, or library path gave trouble. The TCC source
+code has no code path that should issue this error, so this should never happen.
+If it does, either you really messed something up, or there's a bug in this
+module. :-)
+
+=item Error adding library(s): <message>
+
+TCC encountered trouble adding one or more of your specified libraries. Hopefully
+the message explains the trouble well enough.
+
+=item Unable to compile ...
+
+If your code has a syntax error or some other issue, you will get this message.
+If the reported line numbers do not help, consider using L</line_numbers> to
+improve line number reporting.
+
+=item Error adding symbol(s): <message>
+
+If you specify symbols that have already been defined elsewhere, the compiler
+will thwart your attempts with this message. Make sure that you have not defined
+a like-named symbol already. In particular, be sure not to define a symbol that
+was defined already by one of your packages.
+
+=item Unable to relocate: <message>
+
+The last step in converting your C code to machine-executable code is relocating
+the bytecode. This could fail, though I do not understand compilers well enough
+to explain why. If I had to guess, I would say you probably ran out of memory.
+(Sorry I cannot provide more insight into how to fix this sort of problem.
+Feedback for a better explanation would be much appreciated. :-)
+
+=back
 
 =cut
 
@@ -862,6 +935,11 @@ sub compile {
 	$self->report_if_error("Error adding library path(s): MESSAGE");
 	$self->_add_libraries(@{$self->{libraries}});
 	$self->report_if_error("Error adding library(s): MESSAGE");
+	
+	# Allow packages to perform any preprocessing they may want:
+	while (my ($package, $options) = each %{$self->{applied_package}}) {
+		$package->preprocess($self, @$options);
+	}
 	
 	# Assemble the code (with primitive section indicators) and compile!
 	eval {
@@ -897,7 +975,7 @@ sub compile {
 	}
 	# Apply any other symbols that were added:
 	$self->_add_symbols(%{$self->{symbols}});
-	$self->report_if_error("Error adding symbols: MESSAGE");
+	$self->report_if_error("Error adding symbol(s): MESSAGE");
 
 	# Relocate
 	eval {
