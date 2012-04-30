@@ -54,7 +54,7 @@ TCC::Perl - Enabling Perl's full C-API in your TCC compiler context
  
  # Or add them afterwards:
  my $context = TCC->new;
- $context->add_packages('::Perl');
+ $context->apply_packages('::Perl');
  
  # Create a function that tells us how many arguments we sent:
  $context->code('Body') = q{
