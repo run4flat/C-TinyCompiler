@@ -75,7 +75,7 @@ TCC::Perl::Croak - A light-weight interface to Perl's croak and warn
  # Compile and call:
  $context->compile;
  eval {
-     $context->call_function(dont_call);
+     $context->call_function('dont_call');
      1
  } or do {
      print "Got error $@\n";
