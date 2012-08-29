@@ -174,7 +174,7 @@ _call_void_function(state, func_name)
 		my_void_func p_func = (my_void_func)tcc_get_symbol(state, func_name);
 		/* Croak if we encountered errors */
 		if (p_func == 0) croak("Unable to locate %s", func_name);
-		/* Call it with the arrays of inputs and outputs */
+		/* Call it with no inputs and no outputs */
 		p_func();
 
 void

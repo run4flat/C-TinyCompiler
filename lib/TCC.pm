@@ -604,8 +604,8 @@ definition. This will raise an error that would look like this:
 Although it tells you the section in which the error occurred, if you have a
 complex script that adds code in many places, you may have no idea where to find
 offending addition in your Perl code. Fortunately, C (and Perl) allows
-you to give hints to the compiler using a C<#line> directive. Without this handy
-function, you would say something like:
+you to give hints to the compiler using a C<#line> directive, which is made even
+easier with this function. Without C<line_number>, you would say something like:
 
  $context->code('Body') .= "\n#line " . (__LINE__+1) . ' "' . __FILE__ . q{"
      ... code goes here ...
@@ -822,7 +822,7 @@ package.
 
 =head2 compile
 
-Concatenates the text of the three code sections, jit-compiles them, appies all
+Concatenates the text of the three code sections, jit-compiles them, applies all
 symbols from the included packages, and relocates the code so that symbols can
 be retrieved. In short, this is the transformative step that converts your code
 from ascii into machine.
@@ -1109,6 +1109,87 @@ sub call_void_function {
 	
 	# Call the XS function:
 	$self->_call_void_function($function);
+}
+
+=head2 get_func_ref
+
+Takes the name of a compiled function and builds a Perl-level function reference
+that can be used to call the function and retrieve return values. This works by
+scanning the Body section for function declarations with the given name,
+extracting the argument list, and building a corresponding L<FFI::Raw> wrapper
+around the function.
+
+This function uses L</get_symbol>, so any and all error messages from that
+function apply here. If it cannot find the function declaration in the 
+
+If the function cannot be found in the symbol table.
+
+=cut
+
+use FFI::Raw ('');
+
+# Associate basic data types with name keys
+my %type_for;
+for (qw(void int uint short ushort char uchar float double)) {
+	$type_for{$_} = eval ('FFI::Raw::' . $_);
+}
+
+sub get_func_ref {
+	my ($self, $func_name) = @_;
+	
+	# Get the function pointer, which also confirms that the function exists
+	# in our table and that the context has compiled
+	my $pointer = $self->get_symbol($func_name);
+	
+	# The list of FFI::Raw types, the first of which is the return type
+	my @ffi_types;
+	
+	# Now look for the function declaration # (?:\s*\*+)
+	if ($self->code('Body') =~ /(\w+(?:\s+|\s*\*+\s*))$func_name\s*\(\s*([^)]*)\)/) {
+		
+		# Build a list of arguments, the first of which is the return value
+		my ($return_value, $argument_list) = ($1, $2);
+		my @args = split /,\s*/, $argument_list;
+		unshift @args, $return_value;
+		
+		# Process the arguments into a list of ffi_types
+		while(my $arg = shift @args) {
+			# Look for strings
+			if ($arg =~ /^char */) {
+				push @ffi_types, FFI::Raw::str;
+				next;
+			}
+			# Look for pointers
+			if ($arg =~ /\*/) {
+				push @ffi_types, FFI::Raw::ptr;
+				next;
+			}
+			
+			# Look for other types
+			my ($type) = $arg =~ /(\w+)/;
+			if (exists $type_for{$type}) {
+				push @ffi_types, $type_for{$type};
+			}
+			else {
+				croak("Unknown type $type");
+			}
+		}
+	}
+	else {
+		croak("Found $func_name in body, but it did not look like a declaration")
+			if $self->code('Body') =~ /$func_name/;
+		croak("Could not find declaration of $func_name; does it use complex arguments?");
+	}
+	
+	my $raw_object = FFI::Raw->new_from_ptr($pointer, @ffi_types);
+	
+	return sub {
+		# Check the argument count
+		croak("$func_name expects $#ffi_types arguments but you gave it "
+			. scalar(@_)) unless @_ == $#ffi_types;
+		
+		return $raw_object->call(@_);
+	};
 }
 
 =head2 call_function

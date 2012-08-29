@@ -17,7 +17,6 @@ sub apply {
 		#define sbpop(a)          ((a && stb__sbn(a)) ? (a)[--stb__sbn(a)] : 0)
 		#define sbcount(a)        ((a) ? stb__sbn(a) : 0)
 		#define sbadd(a,n)        (stb__sbmaybegrow(a,n), stb__sbn(a)+=(n), &(a)[stb__sbn(a)-(n)])
-		/* working here */
 		#define sbremove(a,n)     ((a) ? (stb__sbn(a) > n ? (stb__sbn(a) -= n) : (stb__sbn(a) = 0)) : 0)
 		#define sblast(a)         ((a)[stb__sbn(a)-1])
 

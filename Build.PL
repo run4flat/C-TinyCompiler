@@ -34,6 +34,7 @@ my $builder = Module::Build->new(
     },
     requires => {
         'perl' => 5.006,
+        'FFI::Raw' => 0.10,
     },
     add_to_cleanup      => [ 'TCC-*'],
     create_makefile_pl => 'traditional',
