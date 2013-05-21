@@ -1119,10 +1119,49 @@ scanning the Body section for function declarations with the given name,
 extracting the argument list, and building a corresponding L<FFI::Raw> wrapper
 around the function.
 
-This function uses L</get_symbol>, so any and all error messages from that
-function apply here. If it cannot find the function declaration in the 
+The method can parse out arguments, but only supports C<void>, C<int>, C<uint>,
+C<short>, C<ushort>, C<char>, C<uchar>, C<float>, C<double>, C<char *>, and
+pointers to arbitrary types. Note that the listed types (except C<void>, which
+can only be a return type) are converted from Perl scalars. The C<char *> type
+assumes that the input is a Perl string and passes the scalar's PV slot, and
+all other pointers expect inputs of type L<FFI::Raw::MemPtr|FFI::Raw::MemPtr/>.
+At the moment, it is your job to massage the inputs to your functions so that
+they look like these types. (Hopefully, a MemPtr interface that plays nicely
+with, say, PDL, can be developed soon.)
 
-If the function cannot be found in the symbol table.
+This function uses L</get_symbol>, so any and all error messages from that
+function apply here. The function can also croak for the following reasons:
+
+=over
+
+=item Unknown type <type>
+
+You tried to get a function reference for a function whose types are not known
+to C<get_func_ref>. You can only use the basic types listed above.
+
+=item Found <func_name> in body, but it did not look like a declaration
+
+The ascii name you request exists in your code, and a symbol by that name exists
+in the symbol table, but I couldn't find a declaration that I knew how to parse.
+This can also arise if your function declaration is overly complicated, in
+particular if the return value is overly complex.
+
+=item Could not find declaration of <func_name>; does it use complex arguments?
+
+You probably forgot to declare your function, or your function is declared with
+a complicated machinery, such as with a preprocessor macro. Don't do that.
+
+=back
+
+When you call the function, you may get an error saying
+
+=over
+
+=item <func_name> expects <count> arguments but you gave it <count>
+
+This means you called your function with too many or too few arguments.
+
+=back
 
 =cut
 
