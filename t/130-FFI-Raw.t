@@ -1,13 +1,12 @@
 #!perl
-# A test to check how TCC handles multiple compiles in a row, or multiple
-# simultaneous compile states.
+# A test to check the TCC FFI interface.
 
 use 5.006;
 use strict;
 use warnings;
 use Test::More tests => 3;
 
-############## see if it wraps and parses things correctly: 5
+############## see if it wraps and parses things correctly: 3
 
 use TCC;
 
