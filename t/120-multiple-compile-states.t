@@ -10,7 +10,7 @@ use Test::More tests => 26;
 use inc::Capture;
 
 ############## one context, compile-call-compile-call-destroy: 5
-diag ('one context, compile-call-compile-call-destroy');
+note ('one context, compile-call-compile-call-destroy');
 
 my $results = Capture::it(<<'TEST_CODE');
 use strict;
@@ -58,7 +58,7 @@ like($results, qr/Done/, 'Destruction does not cause a segfault');
 
 
 ############## two contexts, compile-call-destroy-compile-call-destroy: 5
-diag('two contexts, compile-call-destroy-compile-call-destroy');
+note('two contexts, compile-call-destroy-compile-call-destroy');
 
 $results = Capture::it(<<'TEST_CODE');
 use strict;
@@ -104,7 +104,7 @@ like($results, qr/Finished second context/, 'Safely destroy second context');
 
 
 ############## two contexts, compile-call-compile-destroy-call-destroy: 5
-diag('two contexts, compile-call-compile-destroy-call-destroy');
+note('two contexts, compile-call-compile-destroy-call-destroy');
 
 $results = Capture::it(<<'TEST_CODE');
 use strict;
@@ -153,7 +153,7 @@ like($results, qr/Finished second context/, 'Safely destroy second context');
 
 
 ############## two contexts, compile-call-compile-call-destroy-destroy: 5
-diag('two contexts, compile-call-compile-call-destroy-destroy');
+note('two contexts, compile-call-compile-call-destroy-destroy');
 
 $results = Capture::it(<<'TEST_CODE');
 use strict;
@@ -202,7 +202,7 @@ like($results, qr/Finished second context/, 'Safely destroy second context');
 
 
 ############## two contexts, compile-compile-call-call-destroy-destroy: 6
-diag('two contexts, compile-compile-call-call-destroy-destroy');
+note('two contexts, compile-compile-call-call-destroy-destroy');
 
 $results = Capture::it(<<'TEST_CODE');
 use strict;
