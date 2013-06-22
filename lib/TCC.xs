@@ -14,7 +14,6 @@ void my_tcc_error_func (void * context, const char * msg ) {
 	hv_store((HV*)context, "error_message", 13, newSVpv(msg, 0), 0);
 }
 
-typedef void (*my_func_caller_ptr)(AV*, AV*);
 typedef void (*my_void_func)(void);
 
 MODULE = TCC           PACKAGE = TCC
@@ -176,21 +175,6 @@ _call_void_function(state, func_name)
 		if (p_func == 0) croak("Unable to locate %s", func_name);
 		/* Call it with no inputs and no outputs */
 		p_func();
-
-void
-_call_function(state, func_name, input, output)
-	TCCStateObj * state
-	const char * func_name
-	AV * input
-	AV * output
-	CODE:
-		/* Get a pointer to the function */
-		my_func_caller_ptr p_func
-			= (my_func_caller_ptr)tcc_get_symbol(state, func_name);
-		/* Croak if we encountered errors */
-		if (p_func == 0) croak("Unable to locate %s", func_name);
-		/* Call it with the arrays of inputs and outputs */
-		p_func(input, output);
 
 void
 _get_symbols(state, ...)
