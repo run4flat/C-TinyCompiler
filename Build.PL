@@ -5,6 +5,8 @@ use Module::Build;
 
 # Thank God, tcc provides a (non-documented) means for extracting the prefix!
 my $tcc_dir = `tcc -print-search-dirs`;
+# Croak if tcc is not in the path, or if we can't pick out the install location
+die "Unable to locate tcc (or the print-search-dirs option is bad). Is tcc in your path?\n" if $!;
 if ($tcc_dir =~ /install: (.*).lib.tcc.\n/) {
 	$tcc_dir = $1;
 	die "Extracted prefix from tcc, but can't find libtcc!\n"
