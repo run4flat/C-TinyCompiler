@@ -32,7 +32,7 @@ my $builder = Module::Build->new(
         'Devel::PPPort' => 0,
 	},
     build_requires => {
-        'Test::More' => 0,
+        'Test::More' => 0.88,
     },
     requires => {
         'perl' => 5.006,
