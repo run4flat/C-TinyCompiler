@@ -160,7 +160,7 @@ _relocate(state)
 	TCCStateObj * state
 	CODE:
 		/* Relocate and croak if error */
-		int ret = tcc_relocate(state);
+		int ret = tcc_relocate(state, TCC_RELOCATE_AUTO);
 		if (ret < 0) croak("Relocation error\n");
 
 ############ Post-Compiler ############
