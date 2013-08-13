@@ -2,6 +2,7 @@ package TCC::Callable;
 use strict;
 use warnings;
 use parent 'TCC::package';
+use Carp;
 
 BEGIN {
 	our $VERSION = '0.01';
@@ -13,7 +14,7 @@ sub apply {
 	my (undef, $state, $callable_package) = @_;
 	$callable_package = __PACKAGE__ unless defined $callable_package;
 	# Make sure the package is a valid package name
-	$callable_symbol =~ /^[_A-Za-z]\w+(?:::\w+)*$/
+	$callable_package =~ /^[_A-Za-z]\w+(?:::\w+)*$/
 		or croak("Bad callable package $callable_package; must be a valid Perl package name");
 }
 
@@ -22,43 +23,92 @@ sub apply {
 ##############################################
 # I believe these force me to require 5.10? When do named captures arrive?
 
-# A single C-valid identifier
-my $identifier_re = qr/(?:[_A-Za-z]\w+)/;
+our (@matched_names, @matched_types);
 
-# A single C-valid type, *including* the space at the end
-my $type_re = qr{
-(?<type>
-	(?:$identifier_re				# An identifier followed by more
-		(?:\s+$identifier_re)*		# space-separated identifiers,
-		(?:\s*[*]+\s*|\s+)?		# then a pointer and/or spaces
-	)
-	\s*
-)
-}x;
-
-# A single C-valid variable or function name, which is nothing more than
-# a C identifier that is properly captures under the "name" named
-# capture
-my $name_re = qr{(?<name>$identifier_re)\s*};
-
-# A regex that extracts the function signature
 my $function_sig_re = qr{
-	\G\s+				# start where we left off (just before callable_symbol)
-	$type_re			# function return type
-	$name_re			# function name
-	\( \s*(?:			# opening paren and alternation group
-		void\s* |		# either explicitly void ...
-						# ... or an argument list ...
-		$type_re		# first argument type
-		$name_re		# first argument name
-		(?:				# optional additional arguments
-			,			# separated from previous argument by a comma
-			$type_re	# additional argument type
-			$name_re	# additional argument name
-		)* |			# zero or more additional arguments
-		\s* 			# ... or empty (void)
-	) \)				# closing of alternation group and closing paren
-}x;
+	### main pattern ###
+	(?&clear_trackers)	# Clear the lexical variables holding our
+						#   matched names
+	\G(?&ws)+			# start where we left off (just before callable_symbol)
+	(?&type)(?&ws)+		# function return type
+	(?&name)			# function name (always exists if we reach this point
+						#   due to look-ahead in type() )
+	(*COMMIT)			# No going back after this
+	(?&ws)* \(
+		(?&ws)*(?:			# start of the alternation group
+			(?=\))	|			# either explicitly empty
+			void(?&ws)*(?=\)) |	# ... or explicitly void ...
+								# ... or an argument list:
+			(?&type)(?&ws)+		# first argument type
+			(?&name)			# first argument name
+			(?:					# optional additional arguments
+				(?&ws)*,(?&ws)*	# separated from previous arg
+				(?&type)(?&ws)+	# additional argument type
+				(?&name)		# additional argument name
+			)*					# zero or more additional arguments
+			(?&ws)*				# with optional trailing spaces
+			(?&comma_check)		# helper check for trailing commas
+		)					# end of the alternation group
+		(*COMMIT)						
+	\)					# close argument list
+	
+	
+	### named subpattern definitions ###
+	(?(DEFINE)
+		# An identifier is a single C-valid identifier
+		(?<identifier> (?>[_A-Za-z]\w*)\b )
+		
+		# General-purpose C whitespace:
+		(?<ws> \s+ | /[*] .*? [*]/ )
+		
+		# A type is an identifier followed by more space-separated identifiers
+		# (i.e. "unsigned int") then a pointer and/or spaces, with the knowledge
+		# that an identifier follows
+		(?<_type>
+			(?&identifier) (?:(?&ws)+(?&identifier))*
+			(?:(?&ws)*[*]+)*
+			(?=(?&ws)*(?&identifier))
+			(*COMMIT)
+		)
+		# A type captures a _type and stores the result on a stack
+		(?<type>
+			# Match a type
+			((?&_type))
+			# Save the match
+			(?{push @TCC::Callable::matched_types, $+})
+		)
+		
+		# A name captures an identifier and stores the results on a stack
+		(?<name>
+			# Match an identifier
+			((?&identifier))
+			# Save the match
+			(?{push @TCC::Callable::matched_names, $+})
+			# Commit; no going back after this
+			(*COMMIT)
+		)
+		
+		# A check for trailing commas
+		(?<comma_check>
+			# Croak when we see a comma
+			,
+			(?{
+				die("Found a trailing comma in argument list\n")
+			})
+			|
+			# Or supply an always-matching condition
+			(?=[^,])
+		)
+		
+		# Clear the lexical varibales holding our match results
+		(?<clear_trackers>
+			(?{
+				@TCC::Callable::matched_types = ();
+				@TCC::Callable::matched_names = ();
+			})
+		)
+	)
+}xms;
 
 ###################################################
 # pack, unpack, and return handling lookup tables #
@@ -66,7 +116,7 @@ my $function_sig_re = qr{
 
 # These are the known basic C types
 my @basic_types = (qw(float double), 'long double');
-push @basic_types map { $_, "unsigned $_" } (qw(char short int long), 'long long');
+push @basic_types, map { $_, "unsigned $_" } (qw(char short int long), 'long long');
 
 # These are C code snippets used to handle return values. The code in
 # return_lvals are placed on the left side of the function call, and should
@@ -92,18 +142,25 @@ my %pack_for = (
 	float  => 'f',
 	'int'  => 'i', 'unsigned int' => 'I',
 	long   => 'l', 'unsigned long' => 'L',
-	'long long' => 'q', 'unsigned long long' => 'Q',
 	short  => 's', 'unsigned short' => 'S',
-	'*'    => 'P',
+	'*'    => 'p',
 );
 # Perl-side unpack strings for unpacking the return values
 my %unpack_for = %pack_for;
 
-# expected data type sizes
+# Add 'q' if the platform supports it
+eval {
+	# This will croak if 'q' is not supported:
+	my $foo = pack 'q', 0;
+	$pack_for{'long long'} = 'q';
+	$pack_for{'unsigned long long'} = 'Q';
+};
+
+# Maps from the C-type to the data type's size, in bytes.
 my %sizeof = map {
-	my $data = pack $_, 0;
-	length($data)
-} (values %pack_for);
+	my $data = pack $pack_for{$_}, 0;
+	$_ => length($data)
+} (keys %pack_for);
 
 
 ### XXX at some point create an API for adding new types XXX ###
@@ -114,17 +171,27 @@ sub preprocess {
 	my (undef, $state, $is_lean, $callable_package) = @_;
 	$callable_package = __PACKAGE__ unless defined $callable_package;
 	
+	# Build a replacement string of the same length
+	my $package_string_length = length($callable_package);
+	my $replacement_string = $callable_package;
+	substr($replacement_string, 0, 2, '/*');
+	substr($replacement_string, -2, 2, '*/');
+	
 	# Look through all the code blocks for the callable package
 	my $to_add_to_foot = '';
 	# This regex declares what we're looking for. It picks up where the last
-	# search left off:
-	my $callable_regex = qr/\G.*\b(?=$callable_package\b)/g;
+	# search left off for reasons of efficiency:
+	my $callable_regex = qr/\G.*?\b(?=$callable_package\b)/s;
 	for my $section (qw(Head Body Foot)) {
-		my $code = $self->code($section);
+		my $code = $state->code($section);
 		pos($code) = 0;
-		while ($code =~ $callable_regex) {
+		while ($code =~ m/$callable_regex/g) {
+			my $initial_pos = pos($code);# - $package_string_length;
 			# Replace the symbol so repeated regexes don't pick it up
-			$code =~ s{\G$callable_symbol}{/* --- processed callable --- */}g;
+			substr($code, $initial_pos, $package_string_length,
+				$replacement_string);
+			# Reset the position
+			pos($code) = $initial_pos + $package_string_length;
 			
 			##########################################################
 			# Extract the function signature and build function hash #
@@ -132,12 +199,15 @@ sub preprocess {
 			
 			# Make sure that the string following the callable symbol is
 			# parseable
-			croak("Could not identify $callable_package function declaration or definition in the vicinity of \n"
-				. substr($code, pos($code), pos($code) + 100) . "\n")
-				unless $code =~ $callable_package->function_parse_regex;
+			if (not eval { $code =~ $callable_package->function_parse_regex } ) {
+				my $to_croak = "Could not identify $callable_package function declaration or definition in the vicinity of \n"
+					. substr($code, pos($code), pos($code) + 100) . "\n";
+				$to_croak .= "Reason: $@" if $@;
+				croak($to_croak);
+			}
 			
-			my ($return_type, @arg_types) = @{$-{type}};
-			my ($function_name, @arg_names) = @{$-{name}};
+			my ($return_type, @arg_types) = @matched_types;
+			my ($function_name, @arg_names) = @matched_names;
 			my $function_hashref = $state->{Callable}{$function_name} = {
 				name        => $function_name,
 				return_type => $return_type,
@@ -156,9 +226,9 @@ sub preprocess {
 			$callable_package->build_Perl_invoker($function_hashref);
 		}
 		# Reassign the code section, as we've removed the 
-		$self->code($section) = $code;
+		$state->code($section) = $code;
 	}
-	$self->code('Foot') .= $to_add_to_foot;
+	$state->code('Foot') .= $to_add_to_foot;
 }
 
 sub function_parse_regex { $function_sig_re }
@@ -168,9 +238,13 @@ sub clean_types {
 	my (undef,   $function_hashref) = @_;
 	for ($function_hashref->{return_type}, @{$function_hashref->{arg_types}}) {
 		s/\bconst\b//g;	# remove 'const' indicators
+		s{/[*].*?[*]/}{ }g;	# remove C-style comments
 		s/^\s+//;			# remove initial spaces
 		s/\s+$//;			# remove trailing spaces
 		s/^\s{2,}/ /g;		# replace multiple spaces with single spaces
+		s/[*]\s+(?=[*])/*/g;# smash asterisks together
+		# make sure they don't have an unknown type
+		croak("Unknown type $_") unless /[*]/ or /^void$/ or exists $sizeof{$_};
 	}
 }
 
@@ -188,17 +262,21 @@ sub sort_args_by_binary_size {
 	my @args = 
 		reverse
 		sort {
-			$a[2] <=> $b[2]
+			$a->{size} <=> $b->{size}
 		}
 		map {
-			[$arg_names->[$_], $arg_types->[$_], $arg_sizes[$_]]
+			+{
+				name => $arg_names->[$_],
+				type => $arg_types->[$_],
+				size => $arg_sizes[$_]
+			},
 		}
-		(0 .. $#arg_types);
+		(0 .. $#$arg_types);
 	
 	# Set the sorted lists
-	$function_hashref->{sorted_names} = [map { $_[0] } @args];
-	$function_hashref->{sorted_types} = [map { $_[1] } @args];
-	$function_hashref->{sorted_sizes} = [map { $_[2] } @args];
+	$function_hashref->{sorted_names} = [map $_->{name}, @args];
+	$function_hashref->{sorted_types} = [map $_->{type}, @args];
+	$function_hashref->{sorted_sizes} = [map $_->{size}, @args];
 }
 
 sub build_C_invoker {
@@ -212,7 +290,7 @@ sub build_C_invoker {
 		# Unpack each argument (in order of descending sizeof)
 		for my $i (0 .. $#{$funchash->{sorted_types}}) {
 			my $type = $funchash->{sorted_types}[$i];
-			$to_return .= TCC::line_number(__LINE__) . "
+			$C_invoker .= TCC::line_number(__LINE__) . "
 				$type $funchash->{sorted_names}[$i] = *(($type *) packlist);
 				packlist += $funchash->{sorted_sizes}[$i];
 			";
@@ -220,13 +298,13 @@ sub build_C_invoker {
 		# Call the function and get the return value
 		my $return_lval = $return_lvals{$funchash->{return_type}};
 		my $return_pack = $return_packs{$funchash->{return_type}};
-		$to_return .= TCC::line_number(__LINE__) . "
-			/* Call the function and pack the return, results if
+		$C_invoker .= TCC::line_number(__LINE__) . "
+			/* Call the function and pack the returned results if
 			 * appropriate */
 			$return_lval $function_name(" . join(', ', @{$funchash->{arg_names}}) . ");
 			$return_pack;
 		}";
-	}
+	
 	return $funchash->{C_invoker} = $C_invoker;
 }
 
@@ -246,9 +324,10 @@ sub build_Perl_invoker {
 	# Construct a few values for interpolation. The list of arguments can be
 	# unpacked on the Perl side, in the same order as the C function
 	# definition.
-	my $arg_list_string = join(', ', "\$$_", @{$funchash->{arg_names}});
+	my $arg_list_string = '$' . join(', $', @{$funchash->{arg_names}});
 	my $N_args = scalar(@{$funchash->{arg_names}});
 	my $invoker_name = '_' . $funchash->{name} . '_invoker';
+	my $pack_string = '';
 	
 	$funchash->{subref_string} = TCC::line_number(__LINE__) . "
 		my \$func_ref = \$self->get_symbol('$invoker_name');
@@ -268,7 +347,13 @@ sub build_Perl_invoker {
 		# Get this argument's C type, perl-side name, and pack letter
 		my $arg_name = '$' . $funchash->{sorted_names}[$i];
 		my $arg_type = $funchash->{sorted_types}[$i];
-		my $arg_pack = $pack_for{$arg_type};
+		# Special-case handling for pointers, of course
+		if ($arg_type =~ /[*]/) {
+			$pack_string .= $pack_for{'*'};
+		}
+		else {
+			$pack_string .= $pack_for{$arg_type};
+		}
 		
 		# We have three general cases. SV*, other pointers, and
 		# finally normal values. XXX make this more extensible!!!
@@ -293,6 +378,7 @@ sub build_Perl_invoker {
 					eval { ${arg_name}->can('pack_as') }
 					? ${arg_name}->pack_as('$arg_type')
 					: TCC::Callable::_get_pointer_address($arg_name);
+		printf 'Perl-accessible address returned from _get_pointer_address pointer is %x\n', \$to_pack[-1];
 				";
 		}
 		else {  # generic pack
@@ -310,14 +396,14 @@ sub build_Perl_invoker {
 	if (exists $unpack_for{$return_type}) {
 		$return_builder = TCC::line_number(__LINE__) . "
 			# Allocate return-type memory
-			my \$return = pack($pack_for{$return_type});
+			my \$return = pack('$pack_for{$return_type}', 0);
 		";
 		$return_code = TCC::line_number(__LINE__) . "
 			return unpack '$unpack_for{$return_type}', \$return;
 		";
 	}
 	else {
-		$subref_string .= TCC::line_number(__LINE__) . "
+		$return_builder = TCC::line_number(__LINE__) . "
 			# No return data; send in an empty memory buffer
 			my \$return = '';
 		";
@@ -331,7 +417,11 @@ sub build_Perl_invoker {
 		. TCC::line_number(__LINE__) . "
 		# Pack the args and invoke it!
 		my \$packed_args = pack '$pack_string', \@to_pack;
-		TCC::Callable::_call_invoker(\$packed_args, \$return);
+	#use Devel::Peek;
+	#Dump(\\\$packed_args);
+	my \@round_trip = unpack '$pack_string', \$packed_args;
+	printf('round-trip pointer value is %x\n', \$round_trip[-1]);
+		TCC::Callable::_call_invoker(\$func_ref, \$packed_args, \$return);
 		$return_code
 	}";
 }
@@ -345,7 +435,9 @@ sub TCC::get_callable_subref {
 		unless exists $self->{Callable}{$function_name};
 	croak("No subref string for $function_name")
 		unless exists $self->{Callable}{$function_name}{subref_string};
-	return eval $self->{Callable}{$function_name}{subref_string};
+	my $subref = eval $self->{Callable}{$function_name}{subref_string};
+	croak($@) if $@;
+	return $subref;
 }
 
 1;
