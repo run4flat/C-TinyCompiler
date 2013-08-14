@@ -1,5 +1,8 @@
 #!perl
-# A test to check the TCC Callable interface
+# A test to check the general TCC Callable interface. At this point we've
+# used inc::Capture to be sure that values are properly passed into and out
+# of the C functions. Now we can start calling the functions directly and
+# checking their return values.
 
 use 5.006;
 use strict;
@@ -12,7 +15,7 @@ use TCC;
 ######################
 note('Simple checks that should succeed');
 
-# Build the context with some simple code:
+# Build the context with two simple functions:
 my $context = TCC->new('::Callable');
 $context->code('Body') = q{
 	/* Comment */
