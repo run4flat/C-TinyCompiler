@@ -21,9 +21,10 @@ $context->code('Body') = q{
 		return a + b;
 	}
 	TCC::Callable
-	double my_pow (double value, double exponent) {
-		printf("Input value is %d; exponent is %d\n", value, exponent);
-		return pow(value, exponent);
+	double my_pow (double value, int exponent) {
+		double to_return = 1;
+		while (exponent --> 0) to_return *= value;
+		return to_return;
 	}
 };
 $context->compile;
@@ -42,11 +43,10 @@ note('Strings');
 my $string = 'hello, TCC!';
 
 $context = TCC->new('::Callable');
-$context->code('Body') = q{
+$context->code('Body') = qq{
 	TCC::Callable
 	int check_string ( char * input ) {
-		printf("In TCC string code, got input pointer of %p\n", input);
-		char * expected = "hello, TCC!";
+		char * expected = "$string";
 		while(*expected && *input && (*expected) == (*input)) {
 			expected++; input++;
 		}
@@ -56,25 +56,7 @@ $context->code('Body') = q{
 };
 $context->compile;
 my $match = $context->get_callable_subref('check_string')->(\$string);
-use Devel::Peek;
-Dump(\$string);
-ok($match, 'Strings should match') or do {
-	diag("Full code was:
----- Head ----
-" . $context->code('Head') . "
----- Body ----
-" . $context->code('Body') . "
----- Foot ----
-" . $context->code('Foot') . "
-");
-	diag("Perl invoker is
-----
-$context->{Callable}{check_string}{subref_string}
-----");
-};
-
-done_testing;
-__END__
+ok($match, 'Strings should match');
 
 #################################
 # Check that packed arrays work #
@@ -90,7 +72,6 @@ $context->code('Body') = q{
 	TCC::Callable
 	double my_sum (double * list, int length) {
 		int i;
-		printf("From C code, list's address is %p\n", list);
 		double to_return = 0;
 		for (i = 0; i < length; i++) {
 			to_return += list[i];
@@ -101,21 +82,8 @@ $context->code('Body') = q{
 $context->compile;
 $my_sum = $context->get_callable_subref('my_sum');
 my $C_sum = $my_sum->(\$doubles_buffer, scalar(@values));
-ok(abs($C_sum - $sum) / abs($sum) < 1e-5, 'Handles pointers correctly') or do {
-	diag("Got C-sum of $C_sum and Perl-sum of $sum");
-	diag("Full code was:
----- Head ----
-" . $context->code('Head') . "
----- Body ----
-" . $context->code('Body') . "
----- Foot ----
-" . $context->code('Foot') . "
-");
-	diag("Perl invoker is
-----
-$context->{Callable}{my_sum}{subref_string}
-----");
-};
+ok(abs($C_sum - $sum) / abs($sum) < 1e-5, 'Handles pointers correctly')
+	or diag("Got C-sum of $C_sum and Perl-sum of $sum");
 
 ###########################################
 # Check that we get useful error messages #

@@ -143,7 +143,12 @@ my %pack_for = (
 	'int'  => 'i', 'unsigned int' => 'I',
 	long   => 'l', 'unsigned long' => 'L',
 	short  => 's', 'unsigned short' => 'S',
-	'*'    => 'p',
+	# Note, this must be the Perl internal representation of IV because the
+	# *input* will ultimately be an IV. Using P or p screws things up for some
+	# reason that I don't quite understand. And since I don't understand it,
+	# this could may not actually work correctly on all platforms or for all
+	# compilers.
+	'*'    => 'j',
 );
 # Perl-side unpack strings for unpacking the return values
 my %unpack_for = %pack_for;
@@ -258,11 +263,13 @@ sub sort_args_by_binary_size {
 	my @arg_sizes
 		= map { /\*/ ? $sizeof{'*'} : $sizeof{$_} } @$arg_types;
 	
-	# Build the sorted argument array-of-arrays
+	# Build the sorted argument array-of-arrays in descending order of size
 	my @args = 
-		reverse
 		sort {
-			$a->{size} <=> $b->{size}
+			# This goes against PBP, which would say I should use reverse()
+			# after the sort. However, I do it this way so that the order of
+			# arguments that are the same size is preserved.
+			$b->{size} <=> $a->{size}
 		}
 		map {
 			+{
@@ -287,12 +294,15 @@ sub build_C_invoker {
 	# Callable.xs!!
 	my $C_invoker = TCC::line_number(__LINE__) . "
 		void _${function_name}_invoker(char * packlist, char * returnlist) {";
+		
 		# Unpack each argument (in order of descending sizeof)
 		for my $i (0 .. $#{$funchash->{sorted_types}}) {
 			my $type = $funchash->{sorted_types}[$i];
+			my $var = $funchash->{sorted_names}[$i];
+			my $size = $funchash->{sorted_sizes}[$i];
 			$C_invoker .= TCC::line_number(__LINE__) . "
-				$type $funchash->{sorted_names}[$i] = *(($type *) packlist);
-				packlist += $funchash->{sorted_sizes}[$i];
+				$type $var = *(($type *)packlist);
+				packlist += $size;
 			";
 		}
 		# Call the function and get the return value
@@ -378,7 +388,6 @@ sub build_Perl_invoker {
 					eval { ${arg_name}->can('pack_as') }
 					? ${arg_name}->pack_as('$arg_type')
 					: TCC::Callable::_get_pointer_address($arg_name);
-		printf 'Perl-accessible address returned from _get_pointer_address pointer is %x\n', \$to_pack[-1];
 				";
 		}
 		else {  # generic pack
@@ -417,10 +426,6 @@ sub build_Perl_invoker {
 		. TCC::line_number(__LINE__) . "
 		# Pack the args and invoke it!
 		my \$packed_args = pack '$pack_string', \@to_pack;
-	#use Devel::Peek;
-	#Dump(\\\$packed_args);
-	my \@round_trip = unpack '$pack_string', \$packed_args;
-	printf('round-trip pointer value is %x\n', \$round_trip[-1]);
 		TCC::Callable::_call_invoker(\$func_ref, \$packed_args, \$return);
 		$return_code
 	}";

@@ -11,7 +11,7 @@ use TCC;
 ############## simple code compilation: 1
 my $context= TCC->new;
  $context->code('Body') .= q{
-     void test_func (int a {
+     void test_func (int a) {
          printf("Success!\n");
      }
  };
