@@ -27,12 +27,110 @@ BEGIN {
 
 Compile C-code in memory at runtime.
 
+ ## A really basic example ##
+ 
+ use strict;
+ use warnings;
  use TCC;
  
+ # Build a compiler context
  my $context = TCC->new();
- # working here
  
- my $func_ref = $state->
+ # Add some code (but don't compile yet)
+ $context->code('Body') = q{
+     void say_hi() {
+         printf("Hello from TCC!\n");
+     }
+ };
+ 
+ # Compile our C code
+ $context->compile;
+ 
+ # Call our function
+ $context->call_void_function('say_hi');
+ 
+ 
+ ## Make a function that takes arguments ##
+ 
+ # Use the TCC::Callable package/extension
+ $context = TCC->new('TCC::Callable');
+ 
+ # Add a function that does something mildly useful
+ $context->code('Body') = q{
+     TCC::Callable
+     double positive_pow (double value, int exponent) {
+         double to_return = 1;
+         while (exponent --> 0) to_return *= value;
+         return to_return;
+     }
+ };
+ 
+ # Compile our C code
+ $context->compile;
+ 
+ # Retrieve a subref to our function
+ my $pow_subref = $context->get_callable_subref('positive_pow');
+ 
+ # Exercise the pow subref
+ print "3.5 ** 4 is ", $pow_subref->(3.5, 4), "\n";
+ 
+ 
+ ## Throw exceptions ##
+ 
+ # Use the TCC::Callable package/extension
+ $context = TCC->new( qw< ::Callable ::Perl::Croak > );
+ 
+ # Add a positive, integer pow() function
+ $context->code('Body') = q{
+     TCC::Callable
+     double positive_pow (double value, int exponent) {
+         if (exponent < 0) {
+             croak('positive_pow only accepts non-negative exponents');
+         }
+         double to_return = 1;
+         while (exponent --> 0) to_return *= value;
+         return to_return;
+     }
+ };
+
+=head1 DESCRIPTION
+
+This module provides Perl bindings for the Tiny C Compiler, a small, ultra-fast
+C compiler that can compile in-memory strings of C code, and produce machine
+code in memory as well. In other words, it is a full C just-in-time compiler. It
+works for x86 and ARM processors. It is known to compile on Windows and Linux,
+with partial support for Mac OS X.
+
+The goal for this family of modules is to not only provide a useful interface to
+the compiler itself, but to also provide useful mechanisms for building
+libraries that utilize this module framework. Eventually I would like to see a
+large collection of pre-canned data structures and associated algorithms that
+can be easily assembled together for fast custom C code. I would also like to
+see TCC modules for interfacing with Perl-based C libraries such as PDL, Prima,
+and Imager, or major Alien libraries such as SDL, OpenGL, or WxWidgets. But this
+is only the early stages of development, and the key modules that provide useful
+functionality are:
+
+=over
+
+=item L<TCC::Callable>
+
+This module lets you write functions in C that can be invoked from Perl, much
+like L<Inline::C>.
+
+=item L<TCC::StretchyBuffer>
+
+This module provides a data structure that handles I<exactly> like a C array but
+has additional functionality to dynamically change the length, retrieve the
+current length, and push and pop data at the end.
+
+=item L<TCC::Perl::Croak>
+
+This module provides an interface to Perl's C-level C<croak> and C<warn>
+functions, as well as their v-prefixed variants. This way, you can safely throw
+exceptions from your TCC-compiled C code.
+
+=back
 
 =head1 PRE-COMPILE METHODS
 
