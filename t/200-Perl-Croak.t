@@ -1,5 +1,4 @@
 #!perl
-# A test of TCC::StretchyBuffer
 
 use 5.006;
 use strict;

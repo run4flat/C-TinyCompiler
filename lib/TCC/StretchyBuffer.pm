@@ -77,7 +77,7 @@ TCC::StretchyBuffer - Enabling stretchy buffers in your context
          /* Allocate room for five more */
          sbadd(list, 5);
          
-         /* Get the list length and the allocated space */
+         /* Get the list length */
          printf("List has %d available elements\n", sbcount(list));
          
           /* Set the last element */
@@ -86,14 +86,13 @@ TCC::StretchyBuffer - Enabling stretchy buffers in your context
          /* Pop the last element */
          printf("Last element was %f\n", sbpop(list));
          
-         /* Get the list length and the allocated space */
+         /* How many elements do we have? */
          printf("After a pop, we have %d available elements\n", sbcount(list));
          
          /* Remove two elements */
          int remaining = sbremove(list, 2);
          printf("sbremove returned %d\n", remaining);
          
-         /* Get the list length and the allocated space */
          printf("After remove, we have %d available elements\n", sbcount(list));
          
          int i;

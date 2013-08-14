@@ -24,6 +24,14 @@ sub apply {
 	};
 }
 
+# Retrieve the symbol pointers only once:
+my $symbols = get_symbol_ptrs();
+
+sub apply_symbols {
+	my (undef, $state) = @_;
+	$state->add_symbols(%$symbols);
+}
+
 sub conflicts_with {
 	my ($package, $state, @packages) = @_;
 	
@@ -43,11 +51,6 @@ sub conflicts_with {
 	
 	# Don't register a conflict with TCC::Perl; it has been resolved on our end :-)
 	return 0;
-}
-
-sub apply_symbols {
-	my (undef, $state) = @_;
-	_apply_symbols($state);
 }
 
 1;
