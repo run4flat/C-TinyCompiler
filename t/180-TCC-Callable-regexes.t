@@ -51,7 +51,7 @@ like($_, $regex, "[$_] passes the parse check") foreach (@function_declarations)
 my $to_test = q{
 	void get_height_and_temp (
 		/* Input: location on the grid and time of day */
-		int x, int y, int time,
+		grid * my_grid, int x, int y, int time,
 		/* Output: height and temperature of that position at that time */
 		double * height, double * temperature
 	)

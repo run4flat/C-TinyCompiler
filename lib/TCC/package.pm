@@ -159,8 +159,9 @@ TCC::BigPackage.
 TCC Packages provide a means to easily integrate C code and libraries into a
 compiler context. They are akin to Perl modules, although applying them to a
 compiler state is a bit different compared to saying C<use My::Module> in Perl.
-Most importantly, you can request a package multiple times without fear of
-trouble: each package is applied to a compiler context only once.
+The most important similarity (in my mind) is that you can request a package
+multiple times without fear of trouble: each package is applied to a compiler
+context only once.
 
 One of the first differences is that each package is asked if it conflicts with
 other packages that have been applied or are being applied. Although
@@ -188,7 +189,9 @@ Head section, and add function pointers to the compiler's symbol table.
 If you have a small but useful C library that is too small to distribute as an
 independent shared library, you can create a TCC package to add the function
 declarations and any preprocessor macros to the Head section, and the
-definitions to the Body section.
+definitions to the Body section, much like L<TCC::StretchyBuffer>. Or, you could
+scan the source code and generate functions dynamically based on content found
+in the code, as is done with C<TCC::Callable>.
 
 =item Selectively override another package's behavior
 
@@ -199,10 +202,10 @@ selective overriding after having applied a package.
 =item Apply general source filtering
 
 The C<preprocess> method allows for general text manipulation, so you can use
-it for generic source filtering. If you like Python-style
-indendation-as-code-blocks, you can create a TCC package to enable that for you.
-If you want to use the fat arrow C<< => >> to mean something special in your
-code, you can write a TCC package to enable that for you. The sky is the limit.
+it for generic source filtering. If you like using indendation as code blocks,
+you can create a TCC package to enable that for you. If you want to use the fat
+arrow C<< => >> to mean something special in your code, you can write a TCC
+package to enable that for you. The sky is the limit.
 
 =back
 

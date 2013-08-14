@@ -10,6 +10,7 @@ BEGIN {
 	XSLoader::load 'TCC::Callable', $VERSION;
 }
 
+
 sub apply {
 	my (undef, $state, $callable_package) = @_;
 	$callable_package = __PACKAGE__ unless defined $callable_package;
@@ -451,15 +452,235 @@ __END__
 
 =head1 NAME
 
-TCC::Callable - build Perl-callable functions in C
+TCC::Callable - A TCC-based foreign function interface, i.e. C-functions
+callable from Perl
 
 =head1 SYNOPSIS
 
+ use strict;
+ use warnings;
+ use TCC;
+ 
+ # Make a few functions we can invoke from Perl:
+ my $context = TCC->new('::Callable');
+ $context->code('Body') = q{
+     
+     /* All Perl-callable functions should have
+      * this string placed immediately before the
+      * function declaration or definition: */
+     TCC::Callable
+     double positive_pow (double value, int exponent) {
+         double to_return = 1;
+         while (exponent --> 0) to_return *= value;
+         return to_return;
+     }
+     
+     TCC::Callable
+     double my_sum (double * list, int length) {
+         int i;
+         double to_return = 0;
+         for (i = 0; i < length; i++) {
+             to_return += list[i];
+         }
+         return to_return;
+     }
+ };
+ $context->compile;
+ 
+ # Retrieve the function references:
+ my $pow_subref = $context->get_callable_subref('positive_pow');
+ my $sum_subref = $context->get_callable_subref('my_sum');
+ 
+ # Exercise the pow subref
+ print "3.5 ** 4 is ", $pow_subref->(3.5, 4), "\n";
+ 
+ # Exercise the list summation:
+ my @values = map { rand() } (1..10);
+ my $doubles_buffer = pack('d*', @values);
+ print join(' + ', @values), " = ",
+     $sum_subref->(\$doubles_buffer, scalar(@values));
 
 =head1 DESCRIPTION
 
+This module implements the machinery necessary to easily call C functions from
+Perl with arbitrarily many arguments. The types of the arguments are a bit
+restricted at the moment, but it nonetheless works for a fairly broad variety
+of things. In particular, it handles pointers just fine.
 
-=head1 AUTHORS
+Like all other TCC packages, you make this module available as a package to your
+compiler state either by indicating it as an argument to your state's
+constructor or by applying the package later:
+
+ # Create compiler state with TCC::Callable
+ my $compiler = TCC->new('TCC::Callable');
+ # Slighly abbreviated:
+ my $compiler = TCC->new('::Callable');
+ 
+ # Adding it after construction:
+ my $compiler = TCC->new;
+ $compiler->apply_packages('TCC::Callable');
+
+The primary operation of this package is to scan through your code, identify
+functions for which you want to build Perl functions, and build the necessary
+C and Perl code. You indicate which of your functions should have Perl
+interfaces by preceding them "immediately" with the package name:
+
+ $compiler->code('Body') .= q{
+     /* This will have a Perl interface */
+     TCC::Callable
+     void do_something(int arg1, double arg2) {
+         ...
+     }
+     
+     /* This will not have a Perl interface */
+     void something_else (double foo, int bar) {
+         ...
+     }
+     
+     TCC::Callable  /* Also has a Perl interface */
+     void third_func(int arg1, double arg2) {
+         ...
+     }
+     
+     /* comments among arguments is even ok */
+     TCC::Callable
+     void get_height_and_temp (
+         /* Input: grid, location on the grid, and time of day */
+         grid * my_grid, int x, int y, int time,
+         /* Output: height and temperature of that position at that time */
+         double * height, double * temperature
+     ) {
+         ...
+     }
+
+ };
+
+The extraction parser does not care about whitespace, and is smart enough to
+consider classic C-style comments (i.e. C</* comment */> but not C<// comment>)
+as whitespace. This is true even within the function's arguments (i.e.
+C<get_height_and_temp>) and between the Callable declaration and the function
+declaration (i.e. C<third_func>).
+
+Just before your code is run through the preprocessor, each function marked as
+callable will be examined and a new C-level invocation function with a standard
+argument layout will be added to the C<Foot> section. Also, the text for a Perl
+function that knows the name of the C-level invocation function and knows how to
+invoke it will be generated.
+
+After you have compiled your code, you can obtain a Perl subref that invokes
+your code by calling the C<get_callable_subref> method, supplying the function's
+name. You can then invoke this method with your Perl arguments.
+
+=head2 Basic Usage
+
+The basic usage was already demonstrated in the Synopsis. If you use basic C
+types, you should be able to just put C<TCC::Callable> before the function
+declaration and you will be able to invoke your code from Perl in the obvious
+way.
+
+=head2 Working with pointers and C-level arrays
+
+There are many ways that your Perl code might refer to arbitrary C data. One is
+to have a Perl scalar whose integer value is the pointer address. Another is
+to have the actual binary data stored in a Perl's PV slot, which is ordinarily
+reserved for the string portion of the scalar. Since there is no clean way to
+ascertain your scalar's provenance, TCC::Callable introduces the following
+convention: if your scalar is a I<reference>, it assumes that the PV slot of the
+I<referent> is a binary blob, and uses I<the address of that PV slot> as the
+argument for a pointer. If your scalar is I<not a reference>, it assumes that
+the I<IV slot> of I<your scalar> is a pointer address.
+
+How does this work in practice? If you need to pass a string to your C code,
+pass a I<reference> to the actual variable holding the data instead of passing
+the variable itself:
+
+ my $is_legit = $confirm_id->(\$user_id, \$user_password);
+ #                            ^          ^
+ # note reference             |          |
+
+Similarly, if you pack a collection of data, you pass a reference to that
+packed collection:
+
+ my $packed_data = pack 'd*', @values;
+ my $sum = $sum_data->(\$packed_data, scalar(@values));
+ #                     ^
+ # note referece       |
+
+If you are an XS module writer and you want to allow somebody to get a hold of
+a pointer to some data so they can manipulate it, you simply use C<PTR2IV>:
+
+ /* in XS */
+ IV
+ get_pointer_for_array(self)
+     SV * self
+     CODE:
+         ...
+         RETVAL = PTR2IV(data_array);;
+     OUTPUT:
+         RETVAL
+
+The resulting scalar will be perfect for sending to a function that expects a
+pointer:
+
+ my $data_ptr = $obj->get_pointer_for_array;
+ my $length = $obj->length;
+ my $sum = $sum_data->($data_ptr, $length);
+ #                     ^
+ # No reference!       |
+
+=head2 Working with Perl-level objects
+
+If you have Perl objects with data that you want to pass to a Callable
+function, you can add the C<pack_as> method to your class to make life easier.
+When your function gets an object, it will ask it if it can pack as the needed
+type, such as C<int> or C<double *>. This way your object can present meaningful
+data when used as an argument.
+
+Assuming the ficticious object mentioned in the previous section holds an array
+of doubles, one could implement a C<pack_as> method for tha class like so:
+
+ sub pack_as {
+     my ($self, $type) = @_;
+     return $self->length if $type eq 'int';
+     return $self->get_pointer_for_array
+         if $type =~ /^double\s*[*]$/;
+     croak('Foo can only be cast by TCC::Callable as a double* or int');
+ }
+
+Then the user could invoke the C<my_sum> function from the synopsis like so:
+
+ my $sum = $my_sum_subref->($obj, $obj);
+
+=head2 Caveats about Speed
+
+This is an interface to TCC, and the resulting code compiles down to C code.
+However, the code generated this way still has to jump through a lot of hoops.
+
+I have tried to optimize the generated code as much as possible, but the path
+from your Perl invocation of the generated subref to your actual C code
+involves: (1) invoking the subref with your arguments, which goes on to
+(2) unpack those arguments from C<@_>, (3) ask those arguments if they are
+objects and know how to cast themselves to the required C type, and if not use a
+default casting mechanism, (4) C<pack> all of the arguments into a single C
+binary buffer, (5) build a return binary buffer, (6) call an XS "trampoline"
+that calls the C wrapper with the input and output binary buffers, which
+(7) unpacks the binary input buffer into C variables, (8) invokes the original
+function with the unpacked C variables, (9) packs the return value into the
+supplied binary return buffer and returns (it's actually a void function),
+bringing us back to the subref which (10) unpacks the binary return buffer and
+returns the value.
+
+Contrast those steps with the steps needed for calling a simple xsub wrapper.
+The steps involve (1) invoking the xsub with your arguments in Perl which
+(2) unpacks the stack in your XS/C code, (3) invokes the original function with
+the unpacked C variables, and (4) packs the return value(s) into SVs and places
+them on the return stack.
+
+In short, don't use this sort of functionality to add two integers. If you need
+to perform complicated time stepping on a mesh, though, the extra overhead of
+the function invocation will be relatively innocuous.
+
+=head1 AUTHOR
 
 David Mertens, C<< <dcmertens.perl at gmail.com> >>
 
@@ -474,7 +695,7 @@ automatically be notified of progress on your bug as I make changes.
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc TCC::StretchyBuffer
+    perldoc TCC::Callable
 
 You can also look for information at:
 
@@ -498,22 +719,58 @@ L<http://search.cpan.org/dist/TCC/>
 
 =back
 
+=head1 SEE ALSO
 
-=head1 ACKNOWLEDGEMENTS
+There are a number of modules or tools that do something similar to what
+TCC::Callable does. All of these modules use another compiler to generate the
+object code in use, so they will present tradeoffs in compile time and
+execution time compared with TCC::Callable.
 
-Sean Barett, of course, for creating such a simple but useful chunk of code, and
-for putting that code in the public domain!
+L<TCC::Perl> pulls in all of the Perl headers, which in principle would allow
+you to write your own Perl-callable C functions that manipulate the stack and
+everything. Of course, that is not documented and it's likely to be quite
+verbose, so it's not for the faint of heart. But in principle, that mechanism
+provides another way to generate hooks so you can call C functions from Perl.
+
+For a runtime foreign function interface, see L<FFI::Raw>, which mostly
+supersedes L<FFI> (though the latter might be worth looking into). This module
+uses assembly to build a C stack and then directly fire your C function.
+Building the stack takes a little more effort on your part, but those details
+can easily be encapsulated in a Perl-side wrapper. The only reason I didn't
+use that module as this module's C function caller is that it is not (yet) as
+general as I would like and I didn't want to introduce another nontrivial
+dependency. 
+
+A more powerful means for building C functions and calling them from Perl is
+L<Inline::C>. This has the full power of XS, and the full optimization of your
+local compiler, but is not designed to quickly compile. Generally, I find that
+L<Inline::C> is a great means for prototyping my XS code, but the assumption is
+that eventually the codebase will reach a stable state. If you need to
+dynamically generate lots of different C functions throughout your code's
+execution, the compiler invocation overhead of L<Inline::C> will likely not pay
+off compared to the speed of TCC's compilation.
+
+If your goal is to write a stable set of C functions that can be called from
+Perl, you should ultimately look into Perl's C interface layer, L<perlxs>. XS is
+generally meant to be used in the context of a module or suite of modules, and
+it is nicely wrapped by L<Inline::C> (and more basically by L<Inline::XS>).
+If you do not need to generate C code on the fly, this is the best means for
+writing code that quickly invokes and executes. The Perl hooks into your code
+will be the most direct of all of these options, and the generated object code
+will be optimized by your compiler in ways that TCC likely will not be.
 
 =head1 LICENSE AND COPYRIGHT
 
-Sean Barett's original code is in the public domain. All modifications made by
-David Mertens are Copyright 2012 Northwestern University.
+Portions of this module's code are copyright (c) 2013 Northwestern University.
+
+Portions of this module's code are copyright (c) 2013 Dickinson College.
+
+This module's documentation is copyright (c) 2013 David Mertens.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
 by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
-
 
 =cut
