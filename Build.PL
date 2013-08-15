@@ -3,18 +3,25 @@ use strict;
 use warnings;
 use Module::Build;
 
-# Thank God, tcc provides a (non-documented) means for extracting the prefix!
-my $tcc_dir = `tcc -print-search-dirs`;
-# Croak if tcc is not in the path, or if we can't pick out the install location
-die "Unable to locate tcc (or the print-search-dirs option is bad). Is tcc in your path?\n" if $!;
-if ($tcc_dir =~ /install: (.*).lib.tcc.\n/) {
-	$tcc_dir = $1;
-	die "Extracted prefix from tcc, but can't find libtcc!\n"
-		unless -f "$tcc_dir/include/libtcc.h";
-}
-else {
-	die "Failed to get prefix from tcc:\n$tcc_dir"
-}
+# Thank God, tcc provides a (non-documented) means for extracting its
+# installed location, i.e. the prefix!
+my $tcc_search_dirs = `tcc -print-search-dirs`;
+# Die if it's not in the path
+die "Unable to locate tcc (or the print-search-dirs option is bad). Is tcc in your path?\n"
+	if $! or $tcc_search_dirs =~ /'tcc' is not recognized as an internal/;
+# Die if it didn't give useful information (for some other reason)
+die "Failed to get prefix from tcc:\n$tcc_dir"
+	unless $tcc_search_dirs =~ /install: (.*)/;
+
+# Construct the path to the lib. This is system-dependent.
+my $tcc_prefix = $1;
+
+# That only works on Windows; adjust for other systems
+$tcc_prefix =~ s/(.*).lib.tcc./$1/ unless $^O !~ /MSWin/;
+
+# Double-check
+die "Extracted prefix from tcc, but can't find libtcc!\n"
+	unless -f "$tcc_prefix/include/libtcc.h";
 
 #### --( Make sure we have ppport.h )-- ####
 
@@ -40,8 +47,8 @@ my $builder = Module::Build->new(
     add_to_cleanup      => [ 'TCC-*'],
     create_makefile_pl => 'traditional',
 	needs_compiler => 1,
-	include_dirs => ["$tcc_dir/include", '.'],
-	extra_linker_flags => ["-L$tcc_dir/lib", '-ltcc'],
+	include_dirs => ["$tcc_prefix/include", '.'],
+	extra_linker_flags => ["-L$tcc_prefix/lib", '-ltcc'],
 );
 
 $builder->create_build_script();
