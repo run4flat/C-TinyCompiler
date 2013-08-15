@@ -85,7 +85,7 @@ Compile C-code in memory at runtime.
      TCC::Callable
      double positive_pow (double value, int exponent) {
          if (exponent < 0) {
-             croak('positive_pow only accepts non-negative exponents');
+             croak("positive_pow only accepts non-negative exponents");
          }
          double to_return = 1;
          while (exponent --> 0) to_return *= value;
