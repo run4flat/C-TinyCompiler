@@ -17,7 +17,7 @@ die "Failed to get prefix from tcc:\n$tcc_search_dirs"
 my $tcc_prefix = $1;
 
 # That only works on Windows; adjust for other systems
-$tcc_prefix =~ s/(.*).lib.tcc./$1/ unless $^O !~ /MSWin/;
+$tcc_prefix =~ s/(.*).lib.tcc./$1/ unless $^O =~ /MSWin/;
 
 # Locate the libtcc header file
 my $include_dir = $^O =~ /MSWin/ ? "$tcc_prefix/libtcc" : "$tcc_prefix/include";
