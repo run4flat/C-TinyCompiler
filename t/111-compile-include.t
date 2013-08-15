@@ -18,7 +18,8 @@ sub build_test_header {
 	make_path(File::Spec->catdir(@path));
 	
 	# Generate the header file:
-	my $full_file = File::Spec->catdir(@path, $filename);
+	#my $full_file = File::Spec->catdir(@path, $filename); <-- not cross platform, doesn't interpolate!
+	my $full_file = join('/', @path, $filename);
 	open my $out_fh, '>', $full_file or die "Could not create file $full_file";
 	print $out_fh qq{
 		#ifndef TO_PRINT

@@ -10,7 +10,7 @@ my $tcc_search_dirs = `tcc -print-search-dirs`;
 die "Unable to locate tcc (or the print-search-dirs option is bad). Is tcc in your path?\n"
 	if $! or $tcc_search_dirs =~ /'tcc' is not recognized as an internal/;
 # Die if it didn't give useful information (for some other reason)
-die "Failed to get prefix from tcc:\n$tcc_dir"
+die "Failed to get prefix from tcc:\n$tcc_search_dirs"
 	unless $tcc_search_dirs =~ /install: (.*)/;
 
 # Construct the path to the lib. This is system-dependent.
@@ -19,9 +19,25 @@ my $tcc_prefix = $1;
 # That only works on Windows; adjust for other systems
 $tcc_prefix =~ s/(.*).lib.tcc./$1/ unless $^O !~ /MSWin/;
 
-# Double-check
-die "Extracted prefix from tcc, but can't find libtcc!\n"
-	unless -f "$tcc_prefix/include/libtcc.h";
+# Locate the libtcc header file
+my $include_dir = $^O =~ /MSWin/ ? "$tcc_prefix/libtcc" : "$tcc_prefix/include";
+die "Could not find libtcc header file in $include_dir"
+	unless -f "$include_dir/libtcc.h";
+# Locate the libtcc shared library
+my $lib_dir = $tcc_prefix;
+$lib_dir .= '/lib' unless $^O =~ /MSWin/;
+die "Could not find libtcc shared library in $lib_dir"
+	unless grep -f, glob("$lib_dir/libtcc.*");
+
+END {
+	if ($^O =~ /MSWin/ and not -f 'Build.bat') {
+		print "
+If you installed tcc from source, be sure to copy the contents of the
+win32 directory to a location in your path. (Yeah, I really should create
+an Alien module for TCC. I know, I know...)
+";
+	}
+}
 
 #### --( Make sure we have ppport.h )-- ####
 
@@ -47,8 +63,8 @@ my $builder = Module::Build->new(
     add_to_cleanup      => [ 'TCC-*'],
     create_makefile_pl => 'traditional',
 	needs_compiler => 1,
-	include_dirs => ["$tcc_prefix/include", '.'],
-	extra_linker_flags => ["-L$tcc_prefix/lib", '-ltcc'],
+	include_dirs => [$include_dir, '.'],
+	extra_linker_flags => ["-L$lib_dir", '-ltcc'],
 );
 
 $builder->create_build_script();
