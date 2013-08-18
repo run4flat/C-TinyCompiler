@@ -5,17 +5,17 @@ use strict;
 use warnings;
 use Test::More tests => 4;
 
-use TCC;
+use C::TinyCompiler;
 
 ### 1: Load test
 
 BEGIN {
-    use_ok( 'TCC::Perl::Croak' ) or BAIL_OUT('Unable to load TCC::Perl::Croak!');
+    use_ok( 'C::TinyCompiler::Perl::Croak' ) or BAIL_OUT('Unable to load C::TinyCompiler::Perl::Croak!');
 }
 
 ### 3: Create a function that simply croaks
 my $return = eval {
-	my $context = TCC->new('::Perl::Croak');
+	my $context = C::TinyCompiler->new('::Perl::Croak');
 	$context->code('Body') = q{
 		void test_func(void) {
 			croak("This is only a test");

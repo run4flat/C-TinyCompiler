@@ -6,8 +6,8 @@ use strict;
 use warnings;
 use Test::More tests => 29;
 
-use TCC;
-my $context = TCC->new;
+use C::TinyCompiler;
+my $context = C::TinyCompiler->new;
 
 ############## simple addition and retrieval tests: 9 x 3 = 27
 for my $location (qw(Head Body Foot)) {

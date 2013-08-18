@@ -1,13 +1,13 @@
-package TCC::Callable;
+package C::TinyCompiler::Callable;
 use strict;
 use warnings;
-use parent 'TCC::package';
+use parent 'C::TinyCompiler::package';
 use Carp;
 
 BEGIN {
 	our $VERSION = '0.01';
 	use XSLoader;
-	XSLoader::load 'TCC::Callable', $VERSION;
+	XSLoader::load 'C::TinyCompiler::Callable', $VERSION;
 }
 
 
@@ -15,7 +15,7 @@ sub apply {
 	my (undef, $state, $callable_package) = @_;
 	$callable_package = __PACKAGE__ unless defined $callable_package;
 	# Make sure the package is a valid package name
-	$callable_package =~ /^[_A-Za-z]\w+(?:::\w+)*$/
+	$callable_package =~ /^[_A-Za-z]\w*(?:::\w+)*$/
 		or croak("Bad callable package $callable_package; must be a valid Perl package name");
 }
 
@@ -76,7 +76,7 @@ my $function_sig_re = qr{
 			# Match a type
 			((?&_type))
 			# Save the match
-			(?{push @TCC::Callable::matched_types, $+})
+			(?{push @C::TinyCompiler::Callable::matched_types, $+})
 		)
 		
 		# A name captures an identifier and stores the results on a stack
@@ -84,7 +84,7 @@ my $function_sig_re = qr{
 			# Match an identifier
 			((?&identifier))
 			# Save the match
-			(?{push @TCC::Callable::matched_names, $+})
+			(?{push @C::TinyCompiler::Callable::matched_names, $+})
 			# Commit; no going back after this
 			(*COMMIT)
 		)
@@ -104,8 +104,8 @@ my $function_sig_re = qr{
 		# Clear the lexical varibales holding our match results
 		(?<clear_trackers>
 			(?{
-				@TCC::Callable::matched_types = ();
-				@TCC::Callable::matched_names = ();
+				@C::TinyCompiler::Callable::matched_types = ();
+				@C::TinyCompiler::Callable::matched_names = ();
 			})
 		)
 	)
@@ -293,7 +293,7 @@ sub build_C_invoker {
 	
 	# Note, this signature must be coordinated with the typedef in
 	# Callable.xs!!
-	my $C_invoker = TCC::line_number(__LINE__) . "
+	my $C_invoker = C::TinyCompiler::line_number(__LINE__) . "
 		void _${function_name}_invoker(char * packlist, char * returnlist) {";
 		
 		# Unpack each argument (in order of descending sizeof)
@@ -301,7 +301,7 @@ sub build_C_invoker {
 			my $type = $funchash->{sorted_types}[$i];
 			my $var = $funchash->{sorted_names}[$i];
 			my $size = $funchash->{sorted_sizes}[$i];
-			$C_invoker .= TCC::line_number(__LINE__) . "
+			$C_invoker .= C::TinyCompiler::line_number(__LINE__) . "
 				$type $var = *(($type *)packlist);
 				packlist += $size;
 			";
@@ -309,7 +309,7 @@ sub build_C_invoker {
 		# Call the function and get the return value
 		my $return_lval = $return_lvals{$funchash->{return_type}};
 		my $return_pack = $return_packs{$funchash->{return_type}};
-		$C_invoker .= TCC::line_number(__LINE__) . "
+		$C_invoker .= C::TinyCompiler::line_number(__LINE__) . "
 			/* Call the function and pack the returned results if
 			 * appropriate */
 			$return_lval $function_name(" . join(', ', @{$funchash->{arg_names}}) . ");
@@ -340,7 +340,7 @@ sub build_Perl_invoker {
 	my $invoker_name = '_' . $funchash->{name} . '_invoker';
 	my $pack_string = '';
 	
-	$funchash->{subref_string} = TCC::line_number(__LINE__) . "
+	$funchash->{subref_string} = C::TinyCompiler::line_number(__LINE__) . "
 		my \$func_ref = \$self->get_symbol('$invoker_name');
 		sub {
 			# Make sure we have enough arguments
@@ -369,7 +369,7 @@ sub build_Perl_invoker {
 		# We have three general cases. SV*, other pointers, and
 		# finally normal values. XXX make this more extensible!!!
 		if ($arg_type =~ /SV\s*[*](?=$|[^*])/) {  # SV *
-			$funchash->{subref_string} .= TCC::line_number(__LINE__) . "
+			$funchash->{subref_string} .= C::TinyCompiler::line_number(__LINE__) . "
 				# SV * allows for custom handling; otherwise it must
 				# be a reference!
 				croak('Argument for $arg_name must be a refrence!')
@@ -381,18 +381,18 @@ sub build_Perl_invoker {
 				";
 		}
 		elsif ($arg_type =~ /\*/) {  # other pointers
-			$funchash->{subref_string} .= TCC::line_number(__LINE__) . "
+			$funchash->{subref_string} .= C::TinyCompiler::line_number(__LINE__) . "
 				# regular pointer allows for custom handling; otherwise it
 				# must be an int or a ref. The int is packed as the pointer;
 				# the PVx of the ref is packed as the pointer.
 				push \@to_pack,
 					eval { ${arg_name}->can('pack_as') }
 					? ${arg_name}->pack_as('$arg_type')
-					: TCC::Callable::_get_pointer_address($arg_name);
+					: C::TinyCompiler::Callable::_get_pointer_address($arg_name);
 				";
 		}
 		else {  # generic pack
-			$funchash->{subref_string} .= TCC::line_number(__LINE__) . "
+			$funchash->{subref_string} .= C::TinyCompiler::line_number(__LINE__) . "
 				push \@to_pack,
 					eval { ${arg_name}->can('pack_as') }
 					? ${arg_name}->pack_as('$arg_type')
@@ -404,16 +404,16 @@ sub build_Perl_invoker {
 	# Now build the buffer to hold the return value
 	my ($return_builder, $return_code);
 	if (exists $unpack_for{$return_type}) {
-		$return_builder = TCC::line_number(__LINE__) . "
+		$return_builder = C::TinyCompiler::line_number(__LINE__) . "
 			# Allocate return-type memory
 			my \$return = pack('$pack_for{$return_type}', 0);
 		";
-		$return_code = TCC::line_number(__LINE__) . "
+		$return_code = C::TinyCompiler::line_number(__LINE__) . "
 			return unpack '$unpack_for{$return_type}', \$return;
 		";
 	}
 	else {
-		$return_builder = TCC::line_number(__LINE__) . "
+		$return_builder = C::TinyCompiler::line_number(__LINE__) . "
 			# No return data; send in an empty memory buffer
 			my \$return = '';
 		";
@@ -424,15 +424,15 @@ sub build_Perl_invoker {
 	# call, unpacks the return value (if appropriate), and returns the
 	# return value.
 	$funchash->{subref_string} .= $return_builder
-		. TCC::line_number(__LINE__) . "
+		. C::TinyCompiler::line_number(__LINE__) . "
 		# Pack the args and invoke it!
 		my \$packed_args = pack '$pack_string', \@to_pack;
-		TCC::Callable::_call_invoker(\$func_ref, \$packed_args, \$return);
+		C::TinyCompiler::Callable::_call_invoker(\$func_ref, \$packed_args, \$return);
 		$return_code
 	}";
 }
 
-sub TCC::get_callable_subref {
+sub C::TinyCompiler::get_callable_subref {
 	my ($self, $function_name) = @_;
 	$self->has_compiled
 		or croak('Cannot retrieve a callable function before compiling');
@@ -452,30 +452,30 @@ __END__
 
 =head1 NAME
 
-TCC::Callable - A TCC-based foreign function interface, i.e. C-functions
+C::TinyCompiler::Callable - A C::TinyCompiler-based foreign function interface, i.e. C-functions
 callable from Perl
 
 =head1 SYNOPSIS
 
  use strict;
  use warnings;
- use TCC;
+ use C::TinyCompiler;
  
  # Make a few functions we can invoke from Perl:
- my $context = TCC->new('::Callable');
+ my $context = C::TinyCompiler->new('::Callable');
  $context->code('Body') = q{
      
      /* All Perl-callable functions should have
       * this string placed immediately before the
       * function declaration or definition: */
-     TCC::Callable
+     C::TinyCompiler::Callable
      double positive_pow (double value, int exponent) {
          double to_return = 1;
          while (exponent --> 0) to_return *= value;
          return to_return;
      }
      
-     TCC::Callable
+     C::TinyCompiler::Callable
      double my_sum (double * list, int length) {
          int i;
          double to_return = 0;
@@ -507,18 +507,18 @@ Perl with arbitrarily many arguments. The types of the arguments are a bit
 restricted at the moment, but it nonetheless works for a fairly broad variety
 of things. In particular, it handles pointers just fine.
 
-Like all other TCC packages, you make this module available as a package to your
+Like all other C::TinyCompiler packages, you make this module available as a package to your
 compiler state either by indicating it as an argument to your state's
 constructor or by applying the package later:
 
- # Create compiler state with TCC::Callable
- my $compiler = TCC->new('TCC::Callable');
+ # Create compiler state with C::TinyCompiler::Callable
+ my $compiler = C::TinyCompiler->new('C::TinyCompiler::Callable');
  # Slighly abbreviated:
- my $compiler = TCC->new('::Callable');
+ my $compiler = C::TinyCompiler->new('::Callable');
  
  # Adding it after construction:
- my $compiler = TCC->new;
- $compiler->apply_packages('TCC::Callable');
+ my $compiler = C::TinyCompiler->new;
+ $compiler->apply_packages('C::TinyCompiler::Callable');
 
 The primary operation of this package is to scan through your code, identify
 functions for which you want to build Perl functions, and build the necessary
@@ -527,7 +527,7 @@ interfaces by preceding them "immediately" with the package name:
 
  $compiler->code('Body') .= q{
      /* This will have a Perl interface */
-     TCC::Callable
+     C::TinyCompiler::Callable
      void do_something(int arg1, double arg2) {
          ...
      }
@@ -537,13 +537,13 @@ interfaces by preceding them "immediately" with the package name:
          ...
      }
      
-     TCC::Callable  /* Also has a Perl interface */
+     C::TinyCompiler::Callable  /* Also has a Perl interface */
      void third_func(int arg1, double arg2) {
          ...
      }
      
      /* comments among arguments is even ok */
-     TCC::Callable
+     C::TinyCompiler::Callable
      void get_height_and_temp (
          /* Input: grid, location on the grid, and time of day */
          grid * my_grid, int x, int y, int time,
@@ -574,7 +574,7 @@ name. You can then invoke this method with your Perl arguments.
 =head2 Basic Usage
 
 The basic usage was already demonstrated in the Synopsis. If you use basic C
-types, you should be able to just put C<TCC::Callable> before the function
+types, you should be able to just put C<C::TinyCompiler::Callable> before the function
 declaration and you will be able to invoke your code from Perl in the obvious
 way.
 
@@ -584,7 +584,7 @@ There are many ways that your Perl code might refer to arbitrary C data. One is
 to have a Perl scalar whose integer value is the pointer address. Another is
 to have the actual binary data stored in a Perl's PV slot, which is ordinarily
 reserved for the string portion of the scalar. Since there is no clean way to
-ascertain your scalar's provenance, TCC::Callable introduces the following
+ascertain your scalar's provenance, C::TinyCompiler::Callable introduces the following
 convention: if your scalar is a I<reference>, it assumes that the PV slot of the
 I<referent> is a binary blob, and uses I<the address of that PV slot> as the
 argument for a pointer. If your scalar is I<not a reference>, it assumes that
@@ -644,7 +644,7 @@ of doubles, one could implement a C<pack_as> method for tha class like so:
      return $self->length if $type eq 'int';
      return $self->get_pointer_for_array
          if $type =~ /^double\s*[*]$/;
-     croak('Foo can only be cast by TCC::Callable as a double* or int');
+     croak('Foo can only be cast by C::TinyCompiler::Callable as a double* or int');
  }
 
 Then the user could invoke the C<my_sum> function from the synopsis like so:
@@ -653,7 +653,7 @@ Then the user could invoke the C<my_sum> function from the synopsis like so:
 
 =head2 Caveats about Speed
 
-This is an interface to TCC, and the resulting code compiles down to C code.
+This is an interface to C::TinyCompiler, and the resulting code compiles down to C code.
 However, the code generated this way still has to jump through a lot of hoops.
 
 I have tried to optimize the generated code as much as possible, but the path
@@ -686,47 +686,46 @@ David Mertens, C<< <dcmertens.perl at gmail.com> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-tcc at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=TCC>.  I
-will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+Please report any bugs or feature requests at the project's main github page:
+L<http://github.com/run4flat/perl-TCC/issues>.
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc TCC::Callable
+    perldoc C::TinyCompiler::Callable
 
 You can also look for information at:
 
 =over 4
 
-=item * RT: CPAN's request tracker (report bugs here)
+=item * The Github issue tracker (report bugs here)
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=TCC>
+L<http://github.com/run4flat/perl-TCC/issues>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
-L<http://annocpan.org/dist/TCC>
+L<http://annocpan.org/dist/C-TinyCompiler>
 
 =item * CPAN Ratings
 
-L<http://cpanratings.perl.org/d/TCC>
+L<http://cpanratings.perl.org/d/C-TinyCompiler>
 
 =item * Search CPAN
 
-L<http://search.cpan.org/dist/TCC/>
+L<http://p3rl.org/C::TinyCompiler>
+L<http://search.cpan.org/dist/C-TinyCompiler/>
 
 =back
 
 =head1 SEE ALSO
 
 There are a number of modules or tools that do something similar to what
-TCC::Callable does. All of these modules use another compiler to generate the
+C::TinyCompiler::Callable does. All of these modules use another compiler to generate the
 object code in use, so they will present tradeoffs in compile time and
-execution time compared with TCC::Callable.
+execution time compared with C::TinyCompiler::Callable.
 
-L<TCC::Perl> pulls in all of the Perl headers, which in principle would allow
+L<C::TinyCompiler::Perl> pulls in all of the Perl headers, which in principle would allow
 you to write your own Perl-callable C functions that manipulate the stack and
 everything. Of course, that is not documented and it's likely to be quite
 verbose, so it's not for the faint of heart. But in principle, that mechanism
@@ -748,7 +747,7 @@ L<Inline::C> is a great means for prototyping my XS code, but the assumption is
 that eventually the codebase will reach a stable state. If you need to
 dynamically generate lots of different C functions throughout your code's
 execution, the compiler invocation overhead of L<Inline::C> will likely not pay
-off compared to the speed of TCC's compilation.
+off compared to the speed of tcc's compilation.
 
 If your goal is to write a stable set of C functions that can be called from
 Perl, you should ultimately look into Perl's C interface layer, L<perlxs>. XS is
@@ -757,7 +756,7 @@ it is nicely wrapped by L<Inline::C> (and more basically by L<Inline::XS>).
 If you do not need to generate C code on the fly, this is the best means for
 writing code that quickly invokes and executes. The Perl hooks into your code
 will be the most direct of all of these options, and the generated object code
-will be optimized by your compiler in ways that TCC likely will not be.
+will be optimized by your compiler in ways that tcc likely will not be.
 
 =head1 LICENSE AND COPYRIGHT
 

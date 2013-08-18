@@ -50,7 +50,7 @@ my $builder = Module::Build->new(
     module_name         => 'TCC',
     license             => 'perl',
     dist_author         => q{David Mertens <dcmertens.perl@gmail.com>},
-    dist_version_from   => 'lib/TCC.pm',
+    dist_version_from   => 'lib/C/TinyCompiler.pm',
 	configure_requires => {
         'Devel::PPPort' => 0,
 	},
@@ -60,7 +60,7 @@ my $builder = Module::Build->new(
     requires => {
         'perl' => 5.010,
     },
-    add_to_cleanup      => [ 'TCC-*'],
+#    add_to_cleanup      => [ 'TCC-*'],
     create_makefile_pl => 'traditional',
 	needs_compiler => 1,
 	include_dirs => [$include_dir, '.'],

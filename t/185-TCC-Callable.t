@@ -1,5 +1,5 @@
 #!perl
-# A test to check the general TCC Callable interface. At this point we've
+# A test to check the general C::TinyCompiler::Callable interface. At this point we've
 # used inc::Capture to be sure that values are properly passed into and out
 # of the C functions. Now we can start calling the functions directly and
 # checking their return values.
@@ -8,7 +8,7 @@ use 5.006;
 use strict;
 use warnings;
 use Test::More;
-use TCC;
+use C::TinyCompiler;
 
 ######################
 # Simple code checks #
@@ -16,14 +16,14 @@ use TCC;
 note('Simple checks that should succeed');
 
 # Build the context with two simple functions:
-my $context = TCC->new('::Callable');
+my $context = C::TinyCompiler->new('::Callable');
 $context->code('Body') = q{
 	/* Comment */
-	TCC::Callable
+	C::TinyCompiler::Callable
 	int my_sum (int a, int b) {
 		return a + b;
 	}
-	TCC::Callable
+	C::TinyCompiler::Callable
 	double my_pow (double value, int exponent) {
 		double to_return = 1;
 		while (exponent --> 0) to_return *= value;
@@ -45,9 +45,9 @@ is($my_pow_subref->(3, 3), 27, 'Double inputs and outputs work fine');
 note('Strings');
 my $string = 'hello, TCC!';
 
-$context = TCC->new('::Callable');
+$context = C::TinyCompiler->new('::Callable');
 $context->code('Body') = qq{
-	TCC::Callable
+	C::TinyCompiler::Callable
 	int check_string ( char * input ) {
 		char * expected = "$string";
 		while(*expected && *input && (*expected) == (*input)) {
@@ -70,9 +70,9 @@ my $sum = 0;
 $sum += $_ for @values;
 my $doubles_buffer = pack('d*', @values);
 
-$context = TCC->new('::Callable');
+$context = C::TinyCompiler->new('::Callable');
 $context->code('Body') = q{
-	TCC::Callable
+	C::TinyCompiler::Callable
 	double my_sum (double * list, int length) {
 		int i;
 		double to_return = 0;
@@ -93,11 +93,11 @@ ok(abs($C_sum - $sum) / abs($sum) < 1e-5, 'Handles pointers correctly')
 ###########################################
 note('Error messages');
 
-$context = TCC->new('::Callable');
+$context = C::TinyCompiler->new('::Callable');
 $context->code('Body') = q{
 	typedef int something_crazy;
 	
-	TCC::Callable
+	C::TinyCompiler::Callable
 	int double_it(something_crazy val) {
 		printf("Hello, %d\n", val);
 		return (val*2);

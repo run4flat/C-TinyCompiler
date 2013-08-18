@@ -6,10 +6,10 @@ use strict;
 use warnings;
 use Test::More tests => 2;
 
-use TCC;
+use C::TinyCompiler;
 
-my $context = eval { TCC->new };
-isnt($context, undef, 'TCC->new') or diag ($@);
+my $context = eval { C::TinyCompiler->new };
+isnt($context, undef, 'C::TinyCompiler->new') or diag ($@);
 
 eval { $context = undef };
 is($@, '', 'Destruction') or diag($@);

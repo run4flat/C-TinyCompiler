@@ -1,16 +1,16 @@
-package TCC::StretchyBuffer;
+package C::TinyCompiler::StretchyBuffer;
 use strict;
 use warnings;
-use parent 'TCC::package';
+use parent 'C::TinyCompiler::package';
 
 sub apply {
 	my (undef, $state) = @_;
 	
 	# Make sure we have Perl's croak
-	$state->apply_packages('TCC::Perl::Croak');
+	$state->apply_packages('C::TinyCompiler::Perl::Croak');
 	
 	# Add the stretchy buffer code
-	$state->code('Head') .= TCC::line_number(__LINE__) . q{
+	$state->code('Head') .= C::TinyCompiler::line_number(__LINE__) . q{
 	
 		/* Need this so things work correctly on Mac */
 		#define _ANSI_SOURCE
@@ -44,7 +44,7 @@ sub apply {
 			}
 		}
 
-		#line 1 "whatever comes after TCC::StretchyBuffer"
+		#line 1 "whatever comes after C::TinyCompiler::StretchyBuffer"
 	};
 }
 
@@ -54,17 +54,17 @@ __END__
 
 =head1 NAME
 
-TCC::StretchyBuffer - Enabling stretchy buffers in your context
+C::TinyCompiler::StretchyBuffer - Enabling stretchy buffers in your context
 
 =head1 SYNOPSIS
 
- use TCC;
+ use C::TinyCompiler;
  
  # Declare the compiler context with the stretchy buffer interface:
- my $context= TCC->new('::StretchyBuffer');
+ my $context= C::TinyCompiler->new('::StretchyBuffer');
  
  # Create a function that uses stretchy buffers:
- $context->code('Body') = TCC::line_number(__LINE__) . q{
+ $context->code('Body') = C::TinyCompiler::line_number(__LINE__) . q{
      void test_func() {
          /* stretchy buffers always start and end as null pointers */
          double * list = 0;
@@ -115,7 +115,7 @@ TCC::StretchyBuffer - Enabling stretchy buffers in your context
 
 =head1 DESCRIPTION
 
-This TCC package provides Sean Barrett's implementation of stretchy buffers, as
+This C::TinyCompiler package provides Sean Barrett's implementation of stretchy buffers, as
 well as a couple of extensions by David Mertens for popping and removing values
 off the end. For more of Sean Barrett's cool work, see his website at
 http://nothings.org/.
@@ -159,7 +159,7 @@ of more space on the 'far' end. That is, pushing and popping data off the end is
 easy and relatively fast (though shifting and unshifting off the front is not
 provided).
 
-TCC::StretchyBuffer provides the following interface:
+C::TinyCompiler::StretchyBuffer provides the following interface:
 
 =over
 
@@ -212,39 +212,37 @@ David Mertens, C<< <dcmertens.perl at gmail.com> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-tcc at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=TCC>.  I
-will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+Please report any bugs or feature requests at the project's main github page:
+L<http://github.com/run4flat/perl-TCC/issues>.
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc TCC::StretchyBuffer
+    perldoc C::TinyCompiler::StretchyBuffer
 
 You can also look for information at:
 
 =over 4
 
-=item * RT: CPAN's request tracker (report bugs here)
+=item * The Github issue tracker (report bugs here)
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=TCC>
+L<http://github.com/run4flat/perl-TCC/issues>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
-L<http://annocpan.org/dist/TCC>
+L<http://annocpan.org/dist/C-TinyCompiler>
 
 =item * CPAN Ratings
 
-L<http://cpanratings.perl.org/d/TCC>
+L<http://cpanratings.perl.org/d/C-TinyCompiler>
 
 =item * Search CPAN
 
-L<http://search.cpan.org/dist/TCC/>
+L<http://p3rl.org/C::TinyCompiler>
+L<http://search.cpan.org/dist/C-TinyCompiler/>
 
 =back
-
 
 =head1 ACKNOWLEDGEMENTS
 

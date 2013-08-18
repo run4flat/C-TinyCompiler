@@ -23,7 +23,7 @@ void my_vwarn(const char *pat, va_list *args) {
 	vwarn(pat, args);
 }
 
-MODULE = TCC::Perl::Croak           PACKAGE = TCC::Perl::Croak
+MODULE = C::TinyCompiler::Perl::Croak           PACKAGE = C::TinyCompiler::Perl::Croak
 
 HV *
 get_symbol_ptrs()

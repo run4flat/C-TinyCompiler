@@ -35,12 +35,12 @@ while (my ($type, $params_hash) = each %types) {
 	my $results = Capture::it(qq{
 		use strict;
 		use warnings;
-		use TCC;
+		use C::TinyCompiler;
 
 		# Build the context with some simple code:
-		my $context = TCC->new('::Callable');
+		my $context = C::TinyCompiler->new('::Callable');
 		$context->code('Body') = q{
-			TCC::Callable
+			C::TinyCompiler::Callable
 			$type round_trip ($type input) {
 				printf("Got input %$params_hash->{printf_key}\n", input);
 				return input;

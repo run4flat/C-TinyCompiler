@@ -8,18 +8,18 @@ use Test::More;
 
 use inc::Capture;
 
-my $test_string = 'Hello from TCC::Callable!';
+my $test_string = 'Hello from C::TinyCompiler::Callable!';
 my $context = '$context';
 
 my $results = Capture::it(qq{
 	use strict;
 	use warnings;
-	use TCC;
+	use C::TinyCompiler;
 	
 	# Build the context with some simple code:
-	my $context = TCC->new('::Callable');
+	my $context = C::TinyCompiler->new('::Callable');
 	$context->code('Body') = q{
-		TCC::Callable
+		C::TinyCompiler::Callable
 		void print_string (char * input) {
 			printf("%s\n", input);
 		}

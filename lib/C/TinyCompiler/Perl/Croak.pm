@@ -1,26 +1,26 @@
-package TCC::Perl::Croak;
+package C::TinyCompiler::Perl::Croak;
 use strict;
 use warnings;
-use parent 'TCC::package';
+use parent 'C::TinyCompiler::package';
 
 BEGIN {
 	our $VERSION = '0.01';
 	use XSLoader;
-	XSLoader::load 'TCC::Perl::Croak', $VERSION;
+	XSLoader::load 'C::TinyCompiler::Perl::Croak', $VERSION;
 }
 
 sub apply {
 	my (undef, $state) = @_;
 	
 	# Add function declarations and symbols:
-	$state->code('Head') .= TCC::line_number(__LINE__) . q{
-		/* BEGIN TCC::Perl::Croak */
+	$state->code('Head') .= C::TinyCompiler::line_number(__LINE__) . q{
+		/* BEGIN C::TinyCompiler::Perl::Croak */
 		#include <stdarg.h>
 		void croak(const char *pat, ...);
 		void warn(const char *pat, ...);
 		void vcroak(const char *pat, va_list *args);
 		void vwarn(const char *pat, va_list *args);
-		#line 1 "whatever comes after TCC::Perl::Croak"
+		#line 1 "whatever comes after C::TinyCompiler::Perl::Croak"
 	};
 }
 
@@ -36,7 +36,7 @@ sub conflicts_with {
 	my ($package, $state, @packages) = @_;
 	
 	# If Perl is not among the listed packages, we have no conflicts
-	return 0 unless grep { $_ eq 'TCC::Perl' } @packages;
+	return 0 unless grep { $_ eq 'C::TinyCompiler::Perl' } @packages;
 	
 	# If we're here, we know that Perl *is* among the @packages, so we have a
 	# conflict. If this package has not been applied, then we can simply return
@@ -44,12 +44,12 @@ sub conflicts_with {
 	return 1 unless $state->is_package_applied($package);
 	
 	# We can only reach this line of code if this package *has* been applied and
-	# we're about to apply TCC::Perl. As such, remove our code from the header
+	# we're about to apply C::TinyCompiler::Perl. As such, remove our code from the header
 	# and block our own package.
 	$state->code('Head') =~ s{/\* BEGIN $package .*"whatever comes after $package"}{}s;
 	$state->block_package($package);
 	
-	# Don't register a conflict with TCC::Perl; it has been resolved on our end :-)
+	# Don't register a conflict with C::TinyCompiler::Perl; it has been resolved on our end :-)
 	return 0;
 }
 
@@ -59,14 +59,14 @@ __END__
 
 =head1 NAME
 
-TCC::Perl::Croak - A light-weight interface to Perl's croak and warn
+C::TinyCompiler::Perl::Croak - A light-weight interface to Perl's croak and warn
 
 =head1 SYNOPSIS
 
- use TCC;
+ use C::TinyCompiler;
  
  # Declare the compiler context with the AV bindings:
- my $context= TCC->new(packages => '::Perl::Croak');
+ my $context= C::TinyCompiler->new(packages => '::Perl::Croak');
  
  # Create a rather antisocial function:
  $context->code('Body') = q{
@@ -90,9 +90,9 @@ This module provides Perl's C interface to both the traditional and variadic
 forms of warn and croak. These allow you to write defensive C code without
 needing the full Perl C api to do it.
 
-Like other TCC packages, you never use this module directly. Rather, you
+Like other C::TinyCompiler packages, you never use this module directly. Rather, you
 add it to your compiler context in the constructor or with the function
-L<TCC/apply_packages>.
+L<C::TinyCompiler/apply_packages>.
 
 You can find documentation for these functions at L<perlapi>. However, the
 discussion of the variadic forms of is not terribly illuminating, so I provide
@@ -171,7 +171,7 @@ memory for you, you could try something like this:
      }
  }
 
-(Note that L<TCC::StretchyBuffers> is probably the easiest way to handle such a
+(Note that L<C::TinyCompiler::StretchyBuffers> is probably the easiest way to handle such a
 dynamic list of arrays that need to be freed.)
 
 Just to be crystal clear, if you use this to wrap your variadic function, you
@@ -198,42 +198,42 @@ David Mertens, C<< <dcmertens.perl at gmail.com> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-tcc at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=TCC>.  I
-will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+Please report any bugs or feature requests at the project's main github page:
+L<http://github.com/run4flat/perl-TCC/issues>.
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc TCC::Perl::AV
+    perldoc C::TinyCompiler::Perl::Croak
 
 You can also look for information at:
 
 =over 4
 
-=item * RT: CPAN's request tracker (report bugs here)
+=item * The Github issue tracker (report bugs here)
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=TCC>
+L<http://github.com/run4flat/perl-TCC/issues>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
-L<http://annocpan.org/dist/TCC>
+L<http://annocpan.org/dist/C-TinyCompiler>
 
 =item * CPAN Ratings
 
-L<http://cpanratings.perl.org/d/TCC>
+L<http://cpanratings.perl.org/d/C-TinyCompiler>
 
 =item * Search CPAN
 
-L<http://search.cpan.org/dist/TCC/>
+L<http://p3rl.org/C::TinyCompiler>
+L<http://search.cpan.org/dist/C-TinyCompiler/>
 
 =back
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011, 2012 Northwestern University
+Code copyright 2011-2012 Northwestern University. Documentation copyright
+2011-2013 David Mertens.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

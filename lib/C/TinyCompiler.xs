@@ -16,7 +16,7 @@ void my_tcc_error_func (void * context, const char * msg ) {
 
 typedef void (*my_void_func)(void);
 
-MODULE = TCC           PACKAGE = TCC
+MODULE = C::TinyCompiler           PACKAGE = C::TinyCompiler
 
 ############ Creation/Delection ############
 
@@ -27,7 +27,7 @@ _create_state(context)
 		/* create a new state with error handling */
 		TCCState * state = tcc_new();
 		if (!state) {
-			croak("Unable to create TCC compiler state!\n");
+			croak("Unable to create C::TinyCompiler state!\n");
 		}
 		tcc_set_error_func(state, context, my_tcc_error_func);
 		tcc_set_output_type(state, TCC_OUTPUT_MEMORY);
@@ -69,7 +69,7 @@ _add_include_paths(state, ...)
 			/* As of this time of writing, tcc_add_include always returns zero,
 			 * but if that ever changes, this croak is ready to catch it */
 			if (ret < 0) {
-				croak("Unkown TCC error including path [%s]\n", path_name);
+				croak("Unkown tcc error including path [%s]\n", path_name);
 			}
 		}
 
@@ -86,7 +86,7 @@ _add_sysinclude_paths(state, ...)
 			/* As of this time of writing, tcc_add_sysinclude always returns
 			 * zero, but if that ever changes, this croak is ready to catch it */
 			if (ret < 0) {
-				croak("Unkown TCC error including syspath [%s]\n", path_name);
+				croak("Unkown tcc error including syspath [%s]\n", path_name);
 			}
 		}
 

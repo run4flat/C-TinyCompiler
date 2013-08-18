@@ -1,19 +1,19 @@
-package TCC::Perl::AV;
+package C::TinyCompiler::Perl::AV;
 use strict;
 use warnings;
-use base 'TCC::package';
+use base 'C::TinyCompiler::package';
 
 BEGIN {
 	our $VERSION = '0.01';
 	use XSLoader;
-	XSLoader::load 'TCC::Perl::AV', $VERSION;
+	XSLoader::load 'C::TinyCompiler::Perl::AV', $VERSION;
 }
 
 sub apply {
 	my (undef, $state) = @_;
 	
 	# Make sure we have the necessary typedefs:
-	$state->apply_packages('TCC::Perl::Typedefs');
+	$state->apply_packages('C::TinyCompiler::Perl::Typedefs');
 	
 	# Add function declarations and symbols:
 	$state->code('Head') .= q{
@@ -23,9 +23,12 @@ sub apply {
 	};
 }
 
+# Retrieve the symbol pointers only once:
+my $symbols = get_symbol_ptrs();
+
 sub apply_symbols {
 	my (undef, $state) = @_;
-	_apply_symbols($state);
+	$state->add_symbols(%$symbols);
 }
 
 1;
@@ -34,17 +37,22 @@ __END__
 
 =head1 NAME
 
-TCC::Perl::AV - Perl's array C-API
+C::TinyCompiler::Perl::AV - Perl's array C-API
+
+=head1 STILL UNDER CONSTRUCTION
+
+This code has not seen much attention and has neither been carefully reviewed
+nor tested. It may not even be C<use>able. You have been warned.
 
 =head1 SYNOPSIS
 
- use TCC;
+ use C::TinyCompiler;
  
  # Declare the compiler context with the AV bindings:
- my $context= TCC->new(packages => '::Perl::AV');
+ my $context= C::TinyCompiler->new(packages => '::Perl::AV');
  
  # Or add them afterwards:
- my $context = TCC->new;
+ my $context = C::TinyCompiler->new;
  $context->add_packages('::Perl::AV');
  
  # Create a function that tells us how many arguments we sent:
@@ -65,9 +73,9 @@ context. Eventually it will contain options so that you can specify which parts
 of the API you want, but for now it comes in one big bunch (or as much of it as
 I have packaged thus far).
 
-Like other TCC packages, you never use this module directly. Rather, you
+Like other C::TinyCompiler packages, you never use this module directly. Rather, you
 add it to your compiler context in the constructor or with the function
-L<TCC/apply_packages>.
+L<C::TinyCompiler/apply_packages>.
 
 Documentation for all of these functions can be found at L<perlapi>, so I will
 only give their names and signatures here for reference (and possibly a few
@@ -104,46 +112,42 @@ David Mertens, C<< <dcmertens.perl at gmail.com> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-tcc at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=TCC>.  I
-will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+Please report any bugs or feature requests at the project's main github page:
+L<http://github.com/run4flat/perl-TCC/issues>.
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc TCC::Perl::AV
+    perldoc C::TinyCompiler::Perl::AV
 
 You can also look for information at:
 
 =over 4
 
-=item * RT: CPAN's request tracker (report bugs here)
+=item * The Github issue tracker (report bugs here)
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=TCC>
+L<http://github.com/run4flat/perl-TCC/issues>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
-L<http://annocpan.org/dist/TCC>
+L<http://annocpan.org/dist/C-TinyCompiler>
 
 =item * CPAN Ratings
 
-L<http://cpanratings.perl.org/d/TCC>
+L<http://cpanratings.perl.org/d/C-TinyCompiler>
 
 =item * Search CPAN
 
-L<http://search.cpan.org/dist/TCC/>
+L<http://p3rl.org/C::TinyCompiler>
+L<http://search.cpan.org/dist/C-TinyCompiler/>
 
 =back
 
-
-=head1 ACKNOWLEDGEMENTS
-
-
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011, 2012 Northwestern University
+Code Copyright 2011-2012 Northwestern University. Documentation copyright
+2011-2013 David Mertens.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

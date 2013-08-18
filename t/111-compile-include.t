@@ -33,10 +33,10 @@ sub build_test_header {
 build_test_header qw(foo bar.h);
 
 my $results = Capture::it(<<'TEST_CODE');
-use TCC;
+use C::TinyCompiler;
 
 # Test '.' include directory
-my $context= TCC->new;
+my $context= C::TinyCompiler->new;
 $context->code('Body') = q{
 	#include "foo/bar.h"
 	void test_func() {
@@ -57,9 +57,9 @@ remove_tree('foo');
 build_test_header qw(foo bar.h);
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
+use C::TinyCompiler;
 
-my $context= TCC->new;
+my $context= C::TinyCompiler->new;
 $context->code('Body') = q{
 	#include "bar.h"
 	void test_func() {
@@ -80,9 +80,9 @@ remove_tree('foo');
 build_test_header qw(foo bar.h);
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
+use C::TinyCompiler;
 
-my $context= TCC->new;
+my $context= C::TinyCompiler->new;
 $context->code('Body') = q{
 	#include <foo/bar.h>
 	void test_func() {
@@ -103,9 +103,9 @@ build_test_header qw(foo baz.h);
 build_test_header qw(foo bar baz.h);
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
+use C::TinyCompiler;
 
-my $context= TCC->new;
+my $context= C::TinyCompiler->new;
 $context->add_include_paths('foo');
 use File::Spec;
 $context->add_sysinclude_paths(File::Spec->catdir('foo', 'bar'));
@@ -128,9 +128,9 @@ remove_tree('foo');
 build_test_header qw(foo bar.h);
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
+use C::TinyCompiler;
 
-my $context= TCC->new;
+my $context= C::TinyCompiler->new;
 $context->add_sysinclude_paths('foo');
 $context->code('Body') = q{
 	#include "bar.h"
@@ -152,9 +152,9 @@ build_test_header qw(foo baz.h);
 build_test_header qw(foo bar baz.h);
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
+use C::TinyCompiler;
 
-my $context= TCC->new;
+my $context= C::TinyCompiler->new;
 use File::Spec;
 $context->add_sysinclude_paths('foo');
 $context->add_include_paths(File::Spec->catdir('foo', 'bar'));
@@ -177,9 +177,9 @@ remove_tree('foo');
 build_test_header qw(foo bar.h);
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
+use C::TinyCompiler;
 
-my $context= TCC->new;
+my $context= C::TinyCompiler->new;
 $context->add_include_paths('.');
 $context->code('Body') = q{
 	#include <foo/bar.h>
@@ -201,9 +201,9 @@ build_test_header qw(foo bar.h);
 build_test_header qw(foo baz bar.h);
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
+use C::TinyCompiler;
 
-my $context= TCC->new;
+my $context= C::TinyCompiler->new;
 use File::Spec;
 $context->add_include_paths(
 	'foo',
@@ -228,9 +228,9 @@ remove_tree('foo');
 build_test_header qw(foo bar.h);
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
+use C::TinyCompiler;
 
-my $context= TCC->new;
+my $context= C::TinyCompiler->new;
 $context->add_include_paths (qw(blarg foo));
 
 $context->code('Body') = q{

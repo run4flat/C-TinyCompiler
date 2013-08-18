@@ -1,5 +1,5 @@
 #!perl
-# A test to check how TCC handles multiple compiles in a row, or multiple
+# A test to check how C::TinyCompiler handles multiple compiles in a row, or multiple
 # simultaneous compile states.
 
 use 5.006;
@@ -15,12 +15,12 @@ note ('one context, compile-call-compile-call-destroy');
 my $results = Capture::it(<<'TEST_CODE');
 use strict;
 use warnings;
-use TCC;
+use C::TinyCompiler;
 # Autoflush
 $|++;
 
 # Build the context with some simple code:
-my $context = TCC->new;
+my $context = C::TinyCompiler->new;
 $context->code('Body') = q{
 	void print_hello1() {
 		printf("Hello1 from TCC\n");
@@ -63,12 +63,12 @@ note('two contexts, compile-call-destroy-compile-call-destroy');
 $results = Capture::it(<<'TEST_CODE');
 use strict;
 use warnings;
-use TCC;
+use C::TinyCompiler;
 # Autoflush
 $|++;
 
 # Build the context with some simple code:
-my $context1 = TCC->new;
+my $context1 = C::TinyCompiler->new;
 $context1->code('Body') = q{
 	void print_hello1() {
 		printf("Hello1 from TCC\n");
@@ -79,7 +79,7 @@ $context1->call_void_function('print_hello1');
 undef($context1);
 print "Finished first context\n";
 
-my $context2 = TCC->new;
+my $context2 = C::TinyCompiler->new;
 $context2->code('Body') = q{
 	void print_hello2() {
 		printf("Hello2 from TCC\n");
@@ -109,12 +109,12 @@ note('two contexts, compile-call-compile-destroy-call-destroy');
 $results = Capture::it(<<'TEST_CODE');
 use strict;
 use warnings;
-use TCC;
+use C::TinyCompiler;
 # Autoflush
 $|++;
 
 # Build the context with some simple code:
-my $context1 = TCC->new;
+my $context1 = C::TinyCompiler->new;
 $context1->code('Body') = q{
 	void print_hello1() {
 		printf("Hello1 from TCC\n");
@@ -123,7 +123,7 @@ $context1->code('Body') = q{
 $context1->compile;
 $context1->call_void_function('print_hello1');
 
-my $context2 = TCC->new;
+my $context2 = C::TinyCompiler->new;
 $context2->code('Body') = q{
 	void print_hello2() {
 		printf("Hello2 from TCC\n");
@@ -158,12 +158,12 @@ note('two contexts, compile-call-compile-call-destroy-destroy');
 $results = Capture::it(<<'TEST_CODE');
 use strict;
 use warnings;
-use TCC;
+use C::TinyCompiler;
 # Autoflush
 $|++;
 
 # Build the context with some simple code:
-my $context1 = TCC->new;
+my $context1 = C::TinyCompiler->new;
 $context1->code('Body') = q{
 	void print_hello1() {
 		printf("Hello1 from TCC\n");
@@ -172,7 +172,7 @@ $context1->code('Body') = q{
 $context1->compile;
 $context1->call_void_function('print_hello1');
 
-my $context2 = TCC->new;
+my $context2 = C::TinyCompiler->new;
 $context2->code('Body') = q{
 	void print_hello2() {
 		printf("Hello2 from TCC\n");
@@ -207,12 +207,12 @@ note('two contexts, compile-compile-call-call-destroy-destroy');
 $results = Capture::it(<<'TEST_CODE');
 use strict;
 use warnings;
-use TCC;
+use C::TinyCompiler;
 # Autoflush
 $|++;
 
 # Build the context with some simple code:
-my $context1 = TCC->new;
+my $context1 = C::TinyCompiler->new;
 $context1->code('Body') = q{
 	void print_hello1() {
 		printf("Hello1 from TCC\n");
@@ -221,7 +221,7 @@ $context1->code('Body') = q{
 $context1->compile;
 print "Finished first compile\n";
 
-my $context2 = TCC->new;
+my $context2 = C::TinyCompiler->new;
 $context2->code('Body') = q{
 	void print_hello2() {
 		printf("Hello2 from TCC\n");

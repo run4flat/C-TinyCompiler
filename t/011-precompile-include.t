@@ -6,8 +6,8 @@ use strict;
 use warnings;
 use Test::More tests => 4;
 
-use TCC;
-my $context = TCC->new;
+use C::TinyCompiler;
+my $context = C::TinyCompiler->new;
 
 ############## normal inclusion tests: 2
 eval {$context->add_include_paths('.')};

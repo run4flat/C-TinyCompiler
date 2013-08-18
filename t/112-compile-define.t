@@ -11,13 +11,13 @@ use inc::Capture;
 ############## compile and run a simple printout function
 
 my $results = Capture::it(<<'TEST_CODE');
-use TCC;
+use C::TinyCompiler;
 
 # Build the context with some simple code:
-my $context= TCC->new;
+my $context= C::TinyCompiler->new;
 $context->code('Body') = q{
 	void print_hello() {
-		printf("Hello from TCC\n");
+		printf("Hello from TinyCompiler\n");
 	}
 };
 $context->compile;
@@ -33,14 +33,14 @@ TEST_CODE
 isnt($results, undef, 'Got sensible results')
 	or diag($results);
 like($results, qr/OK: compiled/, "Compiles without trouble");
-like($results, qr/Hello from TCC/, "Calls and executes a function");
+like($results, qr/Hello from TinyCompiler/, "Calls and executes a function");
 like($results, qr/Done/, "Continues after the function call");
 
-############## exercise the #define behavior within TCC: 1
+############## exercise the #define behavior within tcc: 1
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
-my $context = TCC->new;
+use C::TinyCompiler;
+my $context = C::TinyCompiler->new;
 $context->code('Body') = q{
 	#define PRINT(arg) printf(arg)
 	void print_hello() {
@@ -56,8 +56,8 @@ like($results, qr/Hello from TCC/, 'Simple in-code define');
 ############## exercise the Perl-side define function: 1
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
-my $context = TCC->new;
+use C::TinyCompiler;
+my $context = C::TinyCompiler->new;
 $context->define('PRINT(arg)' => 'printf(arg)');
 $context->code('Body') = q{
 	void print_hello() {
@@ -70,11 +70,11 @@ TEST_CODE
 
 like($results, qr/Hello from TCC/, 'Perl in-code define');
 
-############## variadic macros in TCC: 3
+############## variadic macros in C::TinyCompiler: 3
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
-my $context = TCC->new;
+use C::TinyCompiler;
+my $context = C::TinyCompiler->new;
 my %variadic = qw(
 	...			__VA_ARGS__
 	args...		args
@@ -98,15 +98,15 @@ for (keys %variadic) {
 }
 TEST_CODE
 
-like($results, qr/input .../, 'Variadic macro define func(...) in TCC');
-like($results, qr/input args.../, 'Variadic macro define func(args...) in TCC');
-like($results, qr/input arg,.../, 'Variadic macro define func(arg,...) in TCC');
+like($results, qr/input .../, 'Variadic macro define func(...) in tcc');
+like($results, qr/input args.../, 'Variadic macro define func(args...) in tcc');
+like($results, qr/input arg,.../, 'Variadic macro define func(arg,...) in tcc');
 
 ############## variadic macros from Perl: 3
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
-my $context = TCC->new;
+use C::TinyCompiler;
+my $context = C::TinyCompiler->new;
 my %variadic = qw(
 	...			__VA_ARGS__
 	args...		args
@@ -134,20 +134,20 @@ like($results, qr/input .../, 'Variadic macro define func(...) from Perl');
 like($results, qr/input args.../, 'Variadic macro define func(args...) from Perl');
 like($results, qr/input arg,.../, 'Variadic macro define func(arg,...) from Perl');
 
-############## token pasting in TCC and from Perl: 2
+############## token pasting in C::TinyCompiler and from Perl: 2
 # Tests an example in the docs, under the define method. Update the note in
 # this docs if this is removed or moved to a different file.
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
-my $context = TCC->new;
+use C::TinyCompiler;
+my $context = C::TinyCompiler->new;
 
 # Define it Perl-side:
 $context->define('DEBUG_PRINT_INT1(val)'
      , 'printf("For " #val ", got %d\n", val)');
 
 $context->code('Body') .= q{
-	/* Define it TCC-side */
+	/* Define it tcc-side */
 	#define DEBUG_PRINT_INT2(val) printf("For " #val ", got %d\n", val)
 	
 	void test() {
@@ -162,14 +162,14 @@ $context->call_void_function("test");
 TEST_CODE
 
 like($results, qr/For a, got 1/, 'Perl-side token pasting macros');
-like($results, qr/For b, got 2/, 'TCC-side token pasting macros');
+like($results, qr/For b, got 2/, 'tcc-side token pasting macros');
 
 ############## Multiline macros: 1
 # Tests whether multiline macros are allowed.
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
-my $context = TCC->new;
+use C::TinyCompiler;
+my $context = C::TinyCompiler->new;
 
 # Define it Perl-side:
 $context->define ('DEBUG_PRINT_INT1(val)' => q{
@@ -195,8 +195,8 @@ like($results, qr/For a, got 1/, 'Multiline macros are ok');
 # Tests that undefining of macros works
 
 $results = Capture::it(<<'TEST_CODE');
-use TCC;
-my $context = TCC->new;
+use C::TinyCompiler;
+my $context = C::TinyCompiler->new;
 
 # Define it Perl-side:
 $context->define (ONE);

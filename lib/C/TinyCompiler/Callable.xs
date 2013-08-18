@@ -4,11 +4,11 @@
 #include "ppport.h"
 
 /* Note, this typdef must be coordinated with the signature used in
- * TCC::Callable::build_C_invoker!!
+ * C::TinyCompiler::Callable::build_C_invoker!!
  */
 typedef void (*invoker_func_ptr)(char*, char*);
 
-MODULE = TCC::Callable           PACKAGE = TCC::Callable
+MODULE = C::TinyCompiler::Callable           PACKAGE = C::TinyCompiler::Callable
 
 IV
 _get_pointer_address(in_scalar)

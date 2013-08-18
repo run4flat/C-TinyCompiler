@@ -8,8 +8,8 @@ use strict;
 use warnings;
 use Test::More tests => 13;
 
-use TCC;
-my $context = TCC->new;
+use C::TinyCompiler;
+my $context = C::TinyCompiler->new;
 
 ############## simple define behavior: 6
 eval {$context->define('my_symbol')};
@@ -53,10 +53,10 @@ is($context->definition_for('my_symbol'), 'value',
 	local $SIG{__WARN__} = sub {
 		$got_warnings++;
 	};
-	no warnings 'TCC';
+	no warnings 'C::TinyCompiler';
 	eval {$context->define('my_symbol', 'value4')};
-	is($@, '', 'Redefinition under "no warnings qw(TCC)" does not croak');
-	is($got_warnings, 0, 'Redefinition under "no warnings qw(TCC)" does not warn');
+	is($@, '', 'Redefinition under "no warnings qw(C::TinyCompiler)" does not croak');
+	is($got_warnings, 0, 'Redefinition under "no warnings qw(C::TinyCompiler)" does not warn');
 }
 
 ############## undefining: 4

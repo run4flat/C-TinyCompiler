@@ -1,4 +1,4 @@
-package TCC;
+package C::TinyCompiler;
 
 use 5.010;
 use strict;
@@ -9,7 +9,7 @@ use warnings::register;
 
 =head1 NAME
 
-TCC - Full C JIT compiling using the Tiny C Compiler
+C::TinyCompiler - Full C JIT compiling using the Tiny C Compiler
 
 =head1 VERSION
 
@@ -20,7 +20,7 @@ Version 0.01
 BEGIN {
 	our $VERSION = '0.01';
 	use XSLoader;
-	XSLoader::load 'TCC', $VERSION;
+	XSLoader::load 'C::TinyCompiler', $VERSION;
 }
 
 =head1 SYNOPSIS
@@ -31,15 +31,15 @@ Compile C-code in memory at runtime.
  
  use strict;
  use warnings;
- use TCC;
+ use C::TinyCompiler;
  
  # Build a compiler context
- my $context = TCC->new();
+ my $context = C::TinyCompiler->new();
  
  # Add some code (but don't compile yet)
  $context->code('Body') = q{
      void say_hi() {
-         printf("Hello from TCC!\n");
+         printf("Hello from C::TinyCompiler!\n");
      }
  };
  
@@ -52,12 +52,12 @@ Compile C-code in memory at runtime.
  
  ## Make a function that takes arguments ##
  
- # Use the TCC::Callable package/extension
- $context = TCC->new('TCC::Callable');
+ # Use the C::TinyCompiler::Callable package/extension
+ $context = C::TinyCompiler->new('C::TinyCompiler::Callable');
  
  # Add a function that does something mildly useful
  $context->code('Body') = q{
-     TCC::Callable
+     C::TinyCompiler::Callable
      double positive_pow (double value, int exponent) {
          double to_return = 1;
          while (exponent --> 0) to_return *= value;
@@ -77,12 +77,13 @@ Compile C-code in memory at runtime.
  
  ## Throw exceptions ##
  
- # Use the TCC::Callable package/extension
- $context = TCC->new( qw< ::Callable ::Perl::Croak > );
+ # Use the C::TinyCompiler::Callable and
+ # C::TinyCompiler::Perl::Croak packages/extensions
+ $context = C::TinyCompiler->new( qw< ::Callable ::Perl::Croak > );
  
  # Add a positive, integer pow() function
  $context->code('Body') = q{
-     TCC::Callable
+     C::TinyCompiler::Callable
      double positive_pow (double value, int exponent) {
          if (exponent < 0) {
              croak("positive_pow only accepts non-negative exponents");
@@ -98,37 +99,37 @@ Compile C-code in memory at runtime.
 This module provides Perl bindings for the Tiny C Compiler, a small, ultra-fast
 C compiler that can compile in-memory strings of C code, and produce machine
 code in memory as well. In other words, it is a full C just-in-time compiler. It
-works for x86 and ARM processors. It is known to compile on Windows and Linux,
-with partial support for Mac OS X.
+works for x86 and ARM processors. The jit-compilation capabilities offered by
+this module are known to work on Windows, Linux, and Mac OS X.
 
 The goal for this family of modules is to not only provide a useful interface to
 the compiler itself, but to also provide useful mechanisms for building
 libraries that utilize this module framework. Eventually I would like to see a
 large collection of pre-canned data structures and associated algorithms that
 can be easily assembled together for fast custom C code. I would also like to
-see TCC modules for interfacing with Perl-based C libraries such as PDL, Prima,
-and Imager, or major Alien libraries such as SDL, OpenGL, or WxWidgets. But this
-is only the early stages of development, and the key modules that provide useful
-functionality are:
+see C::TinyCompiler modules for interfacing with Perl-based C libraries such as
+PDL, Prima, and Imager, or major Alien libraries such as SDL, OpenGL, or
+WxWidgets. But this is only the early stages of development, and the key modules
+that provide useful functionality are:
 
 =over
 
-=item L<TCC::Callable>
+=item L<C::TinyCompiler::Callable>
 
 This module lets you write functions in C that can be invoked from Perl, much
 like L<Inline::C>.
 
-=item L<TCC::StretchyBuffer>
+=item L<C::TinyCompiler::StretchyBuffer>
 
 This module provides a data structure that handles I<exactly> like a C array but
 has additional functionality to dynamically change the length, retrieve the
 current length, and push and pop data at the end.
 
-=item L<TCC::Perl::Croak>
+=item L<C::TinyCompiler::Perl::Croak>
 
 This module provides an interface to Perl's C-level C<croak> and C<warn>
 functions, as well as their v-prefixed variants. This way, you can safely throw
-exceptions from your TCC-compiled C code.
+exceptions from your TinyCompiler-compiled C code.
 
 =back
 
@@ -151,13 +152,13 @@ these.
 Arguments are simply the names of packages that you want applied to your
 compiler context. For example,
 
- my $context = TCC->new('::Perl::SV');
- my $context = TCC->new('::Perl::SV', '::Perl::AV');
+ my $context = C::TinyCompiler->new('::Perl::SV');
+ my $context = C::TinyCompiler->new('::Perl::SV', '::Perl::AV');
 
-TCC packages are to TCC what modules are to Perl. They add some sort of
-functionality to the compiler context, whether that's a set of functions or some
-fancy source filtering. To learn more about adding packages to your compiler
-context, see L</apply_packages>.
+C::TinyCompiler packages are to C::TinyCompiler what modules are to Perl. They
+add some sort of functionality to the compiler context, whether that's a set of
+functions or some fancy source filtering. To learn more about adding packages to
+your compiler context, see L</apply_packages>.
 
 =cut
 
@@ -260,7 +261,7 @@ F<foo/baz/bar.h>:
 When your C code has C<#include "lib.h"> or C<< #include <lib.h> >>, the search
 process starts off looking in all directories that are in the include path list,
 followed by all the directories in the system include path list. This is
-important if you are writing a TCC package. If you want your user to potentially
+important if you are writing a C::TinyCompiler package. If you want your user to potentially
 override a header file by adding an include path, you should specify any special
 include paths with the sysinclude.
 
@@ -296,9 +297,9 @@ sparingy if you want cross-platform code.
 There is a line of code in these bindings that check for bad return values, and
 if triggered it will issue an error that reads thus:
 
- Unkown TCC error including path [%s]
+ Unkown tcc error including path [%s]
 
-However, as of the time of writing, TCC will never trigger that error, so I find
+However, as of the time of writing, C::TinyCompiler will never trigger that error, so I find
 it highly unlikely that you will ever see it. If you do, these docs and the code
 need to be updated to query the source of the error and be more descriptive.
 
@@ -407,8 +408,8 @@ gives similar results as having this at the top of your C code:
 
  #define DEBUG_PRINT_INT(val) printf("For " #val ", got %d\n", val)
 
-In fact, TCC even supports variadic macros, both directly in C code and using
-this method.
+In fact, tcc (and thus C::TinyCompiler) even supports variadic macros, both
+directly in C code and using this method.
 
 =for details
 The above statements are covered in the test suite, 112-compile-define.t
@@ -463,15 +464,15 @@ pointer, the string "1" is used. Thus, if you want a value of "1", you will need
 to explicitly do that.
 
 If you attempt to modify a preprocessor symbol that has already been defined,
-the behavior will depend on whether or not you have enabled C<TCC> warnings.
-These warnings are enabled if you say C<use warnings> in your code, so if you
-are like most people, these are probably on by default. If you want to suppress
-redefinition warnings for a small chunk of code, you should say something like
-this:
+the behavior will depend on whether or not you have enabled C<C::TinyCompiler>
+warnings. These warnings are enabled if you say C<use warnings> in your code, so
+if you are like most people, these are probably on by default. If you want to
+suppress redefinition warnings for a small chunk of code, you should say
+something like this:
 
  ...
  {
-     no warnings 'TCC';
+     no warnings 'C::TinyCompiler';
      $context->define('symbol', 'new_value');
  }
  ...
@@ -579,7 +580,7 @@ middle of the compilation process.
 
 This should not throw any errors. In particular, it should not gripe at you if
 the symbol was not defined to begin with. However, it is still possible for
-something deep inside TCC to throw an error, in which case you will get an
+something deep inside tcc to throw an error, in which case you will get an
 error message like this:
 
  Error undefining preprocessor symbol [%s]: %s
@@ -679,7 +680,7 @@ sub code :lvalue {
 
 Build a line number directive for you. Use like so:
 
- $context->code('Body') .= TCC::line_number(__LINE__) . q{
+ $context->code('Body') .= C::TinyCompiler::line_number(__LINE__) . q{
      void test_func (void) {
          printf("Success!\n");
      }
@@ -713,7 +714,7 @@ and then your error reporting would say where the error occurred with respect to
 the line in your script. That formula is long-winded and error prone, so you can
 use this useful bit of shorthand instead:
 
- $context->code('Body') .= TCC::line_number(__LINE__) . q{
+ $context->code('Body') .= C::TinyCompiler::line_number(__LINE__) . q{
      ... code goes here ...
  };
 
@@ -734,12 +735,13 @@ sub line_number {
 
 =head2 apply_packages
 
-Adds the given packages to this compiler context. The names should be the
-package names.
+Adds the given packages to this compiler context. The names should be the name
+of the Perl package that has the functions expected by the C::TinyCompiler
+package mechanisms:
 
- $context->apply_packages qw(TCC::Perl::SV TCC::Perl::AV);
+ $context->apply_packages qw(C::TinyCompiler::Perl::SV C::TinyCompiler::Perl::AV);
 
-The C<TCC> is optional, so this is equivalent to:
+The C<C::TinyCompiler> is optional, so this is equivalent to:
 
  $context->apply_packages qw(::Perl::SV ::Perl::AV);
 
@@ -801,8 +803,8 @@ sub apply_packages {
 		
 		# strip spaces
 		$package_spec =~ s/\s//g;
-		# Add TCC if it starts with ::
-		$package_spec = 'TCC' . $package_spec
+		# Add C::TinyCompiler if it starts with ::
+		$package_spec = 'C::TinyCompiler' . $package_spec
 			if index ($package_spec, ':') == 0;
 		# Pull out the package options:
 		my @options;
@@ -853,9 +855,9 @@ dependency (but which has not been blocked). A blocked package is one that
 should should not be applied. An unknown package is one that simply has not
 been applied or blocked.
 
-As an illustration of this idea, consider the L<TCC::Perl> package and the
-light-weight sub-packages like L<TCC::Perl::Croak>. The light-weight packages
-provide a exact subset of L<TCC::Perl>, so if L<TCC::Perl> is loaded, the
+As an illustration of this idea, consider the L<C::TinyCompiler::Perl> package and the
+light-weight sub-packages like L<C::TinyCompiler::Perl::Croak>. The light-weight packages
+provide a exact subset of L<C::TinyCompiler::Perl>, so if L<C::TinyCompiler::Perl> is loaded, the
 sub-packages need to ensure that they do not apply themselves or, if they have
 already been applied, that they remove themselves. This check and manipulation
 occurs during the sub-packages' call to C<conflicts_with>
@@ -915,7 +917,7 @@ sub get_package_args {
 =head1 COMPILE METHODS
 
 These are methods related to compiling your source code. Apart from C<compile>,
-you need not worry about these methods unless you are trying to create a TCC
+you need not worry about these methods unless you are trying to create a C::TinyCompiler
 package.
 
 =head2 compile
@@ -926,10 +928,10 @@ be retrieved. In short, this is the transformative step that converts your code
 from ascii into machine.
 
 This step does far more than simply invoke libtcc's compile function. At the
-time of writing, TCC only supports a single uncompiled compiler state at a time.
-To properly handle this, TCC.pm defers creating the actuall TCCState object as
-long as possible. Calling the C<compile> method on your compiler context
-actually performs these steps:
+time of writing, tcc only supports a single uncompiled compiler state at a time.
+To properly handle this, C::TinyCompiler defers creating the actuall TCCState
+object as long as possible. Calling the C<compile> method on your compiler
+context actually performs these steps:
 
 =over
 
@@ -943,11 +945,19 @@ applied.
 All preprocessor defintions, include paths, library paths, and libraries are
 added to the compiler state.
 
-=item 3. Code assembly and compilation
+=item 3. Invoke preprocessing methods of all C::TinyCompiler packages
+
+Packages can perform preprocessing on the compiler context (and in particular,
+the code strings) just before the actual compilation step. This allows them to
+dynmically add or remove elements to your code, like source-filters. Or they
+could hold off to perform other changes to the compiler context until just
+before the compilation step, although this is generally not needed.
+
+=item 4. Code assembly and compilation
 
 The code is assembled and compiled.
 
-=item 4. Apply symbols and relocate the machine code
+=item 5. Apply symbols and relocate the machine code
 
 Symbols (such as dynamically loaded functions) are applied, the final machine
 code is relocated, and the memory pages holding that code are marked as
@@ -967,21 +977,21 @@ You are only allowed to compile a context once.
 
 =item Error defining processor symbol <name>: <message>
 
-TCC encountered trouble while trying to define the given preprocessor symbol.
+tcc encountered trouble while trying to define the given preprocessor symbol.
 Duplicate preprocessor symbols should not occurr at this stage, so this error
 likely means that your definition is malformed.
 
 =item Error adding include path(s): <message>
 =item Error adding library path(s): <message>
 
-An include path, sysinclude path, or library path gave trouble. The TCC source
+An include path, sysinclude path, or library path gave trouble. The tcc source
 code has no code path that should issue this error, so this should never happen.
 If it does, either you really messed something up, or there's a bug in this
 module. :-)
 
 =item Error adding library(s): <message>
 
-TCC encountered trouble adding one or more of your specified libraries. Hopefully
+tcc encountered trouble adding one or more of your specified libraries. Hopefully
 the message explains the trouble well enough.
 
 =item Unable to compile ...
@@ -1103,7 +1113,7 @@ variable that you wish it to access as a global variable.
 
 This function requires that you send a true C pointer that points to your
 symbol. This only makes sense if you have a way to get C pointers to your
-symbols. This would be the case if you have compiled code with a separate TCC
+symbols. This would be the case if you have compiled code with a separate C::TinyCompiler
 context (in which case you would use L</get_symbols> to retrieve that pointer),
 or if you have XS code that can retrieve a pointer to a function or global
 variable for you.
@@ -1253,47 +1263,48 @@ David Mertens, C<< <dcmertens.perl at gmail.com> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-tcc at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=TCC>.  I
-will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+Please report any bugs or feature requests at the project's main github page:
+L<http://github.com/run4flat/perl-TCC/issues>.
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc TCC
+    perldoc C::TinyCompiler
 
 
 You can also look for information at:
 
 =over 4
 
-=item * RT: CPAN's request tracker (report bugs here)
+=item * The Github issue tracker (report bugs here)
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=TCC>
+L<http://github.com/run4flat/perl-TCC/issues>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
-L<http://annocpan.org/dist/TCC>
+L<http://annocpan.org/dist/C-TinyCompiler>
 
 =item * CPAN Ratings
 
-L<http://cpanratings.perl.org/d/TCC>
+L<http://cpanratings.perl.org/d/C-TinyCompiler>
 
 =item * Search CPAN
 
-L<http://search.cpan.org/dist/TCC/>
+L<http://p3rl.org/C::TinyCompiler>
+L<http://search.cpan.org/dist/C-TinyCompiler/>
 
 =back
 
-
 =head1 ACKNOWLEDGEMENTS
 
+The tcc developers who have continued refining and improving the wonderlul
+little compiler that serves as the basis for this project!
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011-2012 Northwestern University
+Code copyright 2011-2012 Northwestern University. Documentation copyright
+2011-2013 David Mertens.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

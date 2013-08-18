@@ -1,4 +1,4 @@
-package TCC::package;
+package C::TinyCompiler::package;
 
 use strict;
 use warnings;
@@ -10,7 +10,7 @@ sub get_packages {
 	}
 	else {
 		my $hashref = (caller(1))[10];
-		$package_list = $hashref->{TCC_packages} if defined $hashref;
+		$package_list = $hashref->{C_TinyCompiler_packages} if defined $hashref;
 	}
 	$package_list ||= '';
 	return split /[|]/, $package_list;
@@ -52,21 +52,21 @@ sub preprocess {
 sub import {
 	my $module = shift;
 	# Build a hash with keys as currently used package names:
-	my %packages = map {$_ => 1} get_packages($^H{TCC_packages});
+	my %packages = map {$_ => 1} get_packages($^H{C_TinyCompiler_packages});
 	# Add this package:
 	$packages{$module} = 1;
 	# Reassemble into the package list:
-	$^H{TCC_packages} = join('|', keys %packages);
+	$^H{C_TinyCompiler_packages} = join('|', keys %packages);
 }
 
 sub unimport {
 	my $module = shift;
 	# Build a hash with keys as currently used package names:
-	my %packages = map {$_ => 1} get_packages($^H{TCC_packages});
+	my %packages = map {$_ => 1} get_packages($^H{C_TinyCompiler_packages});
 	# Remove this package:
 	delete $packages{$module};
 	# Reassemble into the package list:
-	$^H{TCC_packages} = join('|', keys %packages);
+	$^H{C_TinyCompiler_packages} = join('|', keys %packages);
 }
 
 1;
@@ -75,16 +75,16 @@ __END__
 
 =head1 NAME
 
-TCC::package - base module for TCC packages
+C::TinyCompiler::package - base module for C::TinyCompiler packages
 
 =head1 SYNOPSIS
 
 Here's a skeleton module for something that is meant to be a drop-in,
 ostensibly light-weight replacement for some big package called (generically)
-TCC::BigPackage.
+C::TinyCompiler::BigPackage.
 
- package My::TCC::BigPackage;
- use parent 'TCC::package';
+ package My::C::TinyCompiler::BigPackage;
+ use parent 'C::TinyCompiler::package';
  
  ### Overload the following, as appropriate ###
  
@@ -93,19 +93,19 @@ TCC::BigPackage.
      my ($package, $compiler_state, @options) = @_;
      
      # Add to the Head section
-     $compiler_state->code('Head') .= TCC::line_number(__LINE__) . q{
-         /* BEGIN My::TCC::BigPackage Head */
+     $compiler_state->code('Head') .= C::TinyCompiler::line_number(__LINE__) . q{
+         /* BEGIN My::C::TinyCompiler::BigPackage Head */
          void my_func(void);
-         #line 1 "whatever comes after My::TCC::BigPackage in the Head"
+         #line 1 "whatever comes after My::C::TinyCompiler::BigPackage in the Head"
      };
      
      # Add to the code section
-     $compiler_state->code('Body') .= TCC::line_number(__LINE__) . q{
-         /* BEGIN My::TCC::BigPackage Body */
+     $compiler_state->code('Body') .= C::TinyCompiler::line_number(__LINE__) . q{
+         /* BEGIN My::C::TinyCompiler::BigPackage Body */
          void my_func(void) {
              printf("You called my_func!");
          }
-         #line 1 "whatever comes after My::TCC::BigPackage in the Body"
+         #line 1 "whatever comes after My::C::TinyCompiler::BigPackage in the Body"
      };
  }
  
@@ -114,20 +114,20 @@ TCC::BigPackage.
      my ($package, $state, @packages) = @_;
      
      # Can't respond gracefully here:
-     croak('My::TCC::BigPackage cannot be used in the same context as TCC::Foo')
-         if (grep {$_ eq 'TCC::Foo'} @packages);
+     croak('My::C::TinyCompiler::BigPackage cannot be used in the same context as C::TinyCompiler::Foo')
+         if (grep {$_ eq 'C::TinyCompiler::Foo'} @packages);
      
-     # Otherwise, we only conflict with TCC::BigPackage, so return unless that's
+     # Otherwise, we only conflict with C::TinyCompiler::BigPackage, so return unless that's
      # present
-     return 0 unless grep {$_ eq 'TCC::BigPackage'} @packages;
+     return 0 unless grep {$_ eq 'C::TinyCompiler::BigPackage'} @packages;
      
      # If this package is being installed, it won't yet be registered as
      # applied; returning 1 (conflicting) will prevent it from being applied
      return 1 unless $state->is_package_applied($package);
      
      # If we're here, we can conclude that (1) this package has been applied and
-     # (2) TCC::BigPackage is about to be applied. Retract this package and
-     # return 0, indicating that we have not problem with TCC::BigPackage:
+     # (2) C::TinyCompiler::BigPackage is about to be applied. Retract this package and
+     # return 0, indicating that we have not problem with C::TinyCompiler::BigPackage:
      $state->code('Head')
          =~ s{/\* BEGIN $package Head.*"whatever comes after $package in the Head"}{}s;
      $state->code('Body')
@@ -156,7 +156,7 @@ TCC::BigPackage.
 
 =head1 DESCRIPTION
 
-TCC Packages provide a means to easily integrate C code and libraries into a
+C::TinyCompiler Packages provide a means to easily integrate C code and libraries into a
 compiler context. They are akin to Perl modules, although applying them to a
 compiler state is a bit different compared to saying C<use My::Module> in Perl.
 The most important similarity (in my mind) is that you can request a package
@@ -180,18 +180,18 @@ Generally speaking, packages can accomplish these basic tasks:
 
 =item Load libraries, supply headers, add symbols
 
-If you want to interface an external library to a TCC context, you can use a
+If you want to interface an external library to a C::TinyCompiler context, you can use a
 package to dynamically load that library, add function declarations to the
 Head section, and add function pointers to the compiler's symbol table.
 
 =item Supply useful functions or constants
 
 If you have a small but useful C library that is too small to distribute as an
-independent shared library, you can create a TCC package to add the function
+independent shared library, you can create a C::TinyCompiler package to add the function
 declarations and any preprocessor macros to the Head section, and the
-definitions to the Body section, much like L<TCC::StretchyBuffer>. Or, you could
+definitions to the Body section, much like L<C::TinyCompiler::StretchyBuffer>. Or, you could
 scan the source code and generate functions dynamically based on content found
-in the code, as is done with C<TCC::Callable>.
+in the code, as is done with C<C::TinyCompiler::Callable>.
 
 =item Selectively override another package's behavior
 
@@ -203,8 +203,8 @@ selective overriding after having applied a package.
 
 The C<preprocess> method allows for general text manipulation, so you can use
 it for generic source filtering. If you like using indendation as code blocks,
-you can create a TCC package to enable that for you. If you want to use the fat
-arrow C<< => >> to mean something special in your code, you can write a TCC
+you can create a C::TinyCompiler package to enable that for you. If you want to use the fat
+arrow C<< => >> to mean something special in your code, you can write a C::TinyCompiler
 package to enable that for you. The sky is the limit.
 
 =back
@@ -215,43 +215,43 @@ David Mertens, C<< <dcmertens.perl at gmail.com> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-tcc at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=TCC>.  I
-will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+Please report any bugs or feature requests at the project's main github page:
+L<http://github.com/run4flat/perl-TCC/issues>.
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc TCC
+    perldoc C::TinyCompiler::package
 
 
 You can also look for information at:
 
 =over 4
 
-=item * RT: CPAN's request tracker (report bugs here)
+=item * The Github issue tracker (report bugs here)
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=TCC>
+L<http://github.com/run4flat/perl-TCC/issues>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
-L<http://annocpan.org/dist/TCC>
+L<http://annocpan.org/dist/C-TinyCompiler>
 
 =item * CPAN Ratings
 
-L<http://cpanratings.perl.org/d/TCC>
+L<http://cpanratings.perl.org/d/C-TinyCompiler>
 
 =item * Search CPAN
 
-L<http://search.cpan.org/dist/TCC/>
+L<http://p3rl.org/C::TinyCompiler>
+L<http://search.cpan.org/dist/C-TinyCompiler/>
 
 =back
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2012 Northwestern University
+Code copyright 2012 Northwestern University. Documentation copyright 2012-2013
+David Mertens.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

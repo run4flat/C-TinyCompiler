@@ -1,7 +1,7 @@
-package TCC::Perl::Typedefs;
+package C::TinyCompiler::Perl::Typedefs;
 use strict;
 use warnings;
-use parent 'TCC::package';
+use parent 'C::TinyCompiler::package';
 
 sub apply {
 	my (undef, $state) = @_;

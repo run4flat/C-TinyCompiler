@@ -1,12 +1,12 @@
 #!perl
-# A test to check the TCC Callable interface's regular expressions.
+# A test to check the C::TinyCompiler::Callable interface's regular expressions.
 
 use strict;
 use warnings;
 use Test::More;
-use TCC::Callable;
+use C::TinyCompiler::Callable;
 
-my $regex = TCC::Callable->function_parse_regex;
+my $regex = C::TinyCompiler::Callable->function_parse_regex;
 
 # Build a collection of simple function declarations to see if they are
 # properly parsed by the Callable regex.
@@ -19,23 +19,23 @@ note('Function declarations that should pass');
 
 note('Analyzing [ int my_sum(int a, int b)]');
 like(' int my_sum(int a, int b)', $regex, 'int (int, int) passes');
-is($TCC::Callable::matched_names[0], 'my_sum', 'Properly pulls out function name');
-is($TCC::Callable::matched_types[0], 'int', 'Properly pulls out return type');
-is($TCC::Callable::matched_names[1], 'a', 'Properly pulls out first argument name');
-is($TCC::Callable::matched_types[1], 'int', 'Properly pulls out first argument type');
-is($TCC::Callable::matched_names[2], 'b', 'Properly pulls out second argument name');
-is($TCC::Callable::matched_types[2], 'int', 'Properly pulls out second argument type');
+is($C::TinyCompiler::Callable::matched_names[0], 'my_sum', 'Properly pulls out function name');
+is($C::TinyCompiler::Callable::matched_types[0], 'int', 'Properly pulls out return type');
+is($C::TinyCompiler::Callable::matched_names[1], 'a', 'Properly pulls out first argument name');
+is($C::TinyCompiler::Callable::matched_types[1], 'int', 'Properly pulls out first argument type');
+is($C::TinyCompiler::Callable::matched_names[2], 'b', 'Properly pulls out second argument name');
+is($C::TinyCompiler::Callable::matched_types[2], 'int', 'Properly pulls out second argument type');
 
 note('Analyzing [ int my_sum(int a, double b, char c)]');
 like(' int foobar(int a, double b, char c)', $regex, 'int (int, double, char) passes');
-is($TCC::Callable::matched_names[0], 'foobar', 'Properly pulls out function name');
-is($TCC::Callable::matched_types[0], 'int', 'Properly pulls out return type');
-is($TCC::Callable::matched_names[1], 'a', 'Properly pulls out first argument name');
-is($TCC::Callable::matched_types[1], 'int', 'Properly pulls out first argument type');
-is($TCC::Callable::matched_names[2], 'b', 'Properly pulls out second argument name');
-is($TCC::Callable::matched_types[2], 'double', 'Properly pulls out second argument type');
-is($TCC::Callable::matched_names[3], 'c', 'Properly pulls out third argument name');
-is($TCC::Callable::matched_types[3], 'char', 'Properly pulls out third argument type');
+is($C::TinyCompiler::Callable::matched_names[0], 'foobar', 'Properly pulls out function name');
+is($C::TinyCompiler::Callable::matched_types[0], 'int', 'Properly pulls out return type');
+is($C::TinyCompiler::Callable::matched_names[1], 'a', 'Properly pulls out first argument name');
+is($C::TinyCompiler::Callable::matched_types[1], 'int', 'Properly pulls out first argument type');
+is($C::TinyCompiler::Callable::matched_names[2], 'b', 'Properly pulls out second argument name');
+is($C::TinyCompiler::Callable::matched_types[2], 'double', 'Properly pulls out second argument type');
+is($C::TinyCompiler::Callable::matched_names[3], 'c', 'Properly pulls out third argument name');
+is($C::TinyCompiler::Callable::matched_types[3], 'char', 'Properly pulls out third argument type');
 
 my @function_declarations = split(/\n/, <<'DECLARATIONS');
  int my_sum(int a, int b)

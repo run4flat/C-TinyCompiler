@@ -1,5 +1,5 @@
 #!perl
-# A test of TCC::StretchyBuffer
+# A test of C::TinyCompiler::StretchyBuffer
 
 use 5.006;
 use strict;
@@ -7,16 +7,16 @@ use warnings;
 use Test::More tests => 19;
 
 # Needed for line numbering. :-)
-use TCC;
+use C::TinyCompiler;
 use inc::Capture;
 
 ############## compile and run a simple printout function (make sure it compiles)
 
 my $results = Capture::it(<<'TEST_CODE');
-use TCC;
+use C::TinyCompiler;
 
  # Declare the compiler context with the stretchy buffer interface:
- my $context= TCC->new('::StretchyBuffer');
+ my $context= C::TinyCompiler->new('::StretchyBuffer');
  
  # Create a function that uses stretchy buffers:
  $context->code('Body') = q{
@@ -44,15 +44,15 @@ like($results, qr/OK: test_func called/, 'By itself, StretchyBuffer does not cau
 
 ############## Test the interface
 
-$results = Capture::it(TCC::line_number(__LINE__+1) . <<'TEST_CODE');
+$results = Capture::it(C::TinyCompiler::line_number(__LINE__+1) . <<'TEST_CODE');
 
-use TCC;
+use C::TinyCompiler;
 
  # Declare the compiler context with the stretchy buffer interface:
- my $context= TCC->new('::StretchyBuffer');
+ my $context= C::TinyCompiler->new('::StretchyBuffer');
  
  # Create a function that uses stretchy buffers:
- $context->code('Body') = TCC::line_number(__LINE__) . q{
+ $context->code('Body') = C::TinyCompiler::line_number(__LINE__) . q{
      void test_func() {
          /* stretchy buffers always start and end as null pointers */
          double * list = 0;
@@ -119,15 +119,15 @@ like($results, qr/Done/, 'Everything runs without croaking');
 
 ############## Test operations on null pointers and empty lists
 
-$results = Capture::it(TCC::line_number(__LINE__+1) . <<'TEST_CODE');
+$results = Capture::it(C::TinyCompiler::line_number(__LINE__+1) . <<'TEST_CODE');
 
-use TCC;
+use C::TinyCompiler;
 
  # Declare the compiler context with the stretchy buffer interface:
- my $context= TCC->new('::StretchyBuffer');
+ my $context= C::TinyCompiler->new('::StretchyBuffer');
  
  # Create a function that uses stretchy buffers:
- $context->code('Body') = TCC::line_number(__LINE__) . q{
+ $context->code('Body') = C::TinyCompiler::line_number(__LINE__) . q{
      void test_func() {
          /* stretchy buffers always start and end as null pointers */
          double * list = 0;

@@ -1,7 +1,7 @@
-package TCC::Perl;
+package C::TinyCompiler::Perl;
 use strict;
 use warnings;
-use parent 'TCC::package';
+use parent 'C::TinyCompiler::package';
 
 # Find the CORE diretory:
 my $core_dir;
@@ -29,11 +29,11 @@ sub apply {
 	$state->add_include_paths($core_dir, @local_inc);
 	
 	# Add function declarations and symbols:
-	$state->code('Head') .= TCC::line_number(__LINE__) . q{
+	$state->code('Head') .= C::TinyCompiler::line_number(__LINE__) . q{
 		#include "EXTERN.h"
 		#include "perl.h"
 		#include "XSUB.h"
-		#line 1 "whatever comes after TCC::Perl"
+		#line 1 "whatever comes after C::TinyCompiler::Perl"
 	};
 }
 
@@ -43,17 +43,17 @@ __END__
 
 =head1 NAME
 
-TCC::Perl - Enabling Perl's full C-API in your TCC compiler context
+C::TinyCompiler::Perl - Enabling Perl's full C-API in your C::TinyCompiler context
 
 =head1 SYNOPSIS
 
- use TCC;
+ use C::TinyCompiler;
  
  # Declare the compiler context with the Perl bindings:
- my $context= TCC->new('::Perl');
+ my $context= C::TinyCompiler->new('::Perl');
  
  # Or add them afterwards:
- my $context = TCC->new;
+ my $context = C::TinyCompiler->new;
  $context->apply_packages('::Perl');
  
  # Create a function that tells us how many arguments we sent:
@@ -85,7 +85,7 @@ how you define I<real> (as well as many blank lines), which is why I consider it
 to be quite a blunt tool.
 
 (What follows is what I *hope* happens, though it is not yet the reality.) This
-weight is the motivation for the TCC::Perl::* sub-modules. They pull in and
+weight is the motivation for the C::TinyCompiler::Perl::* sub-modules. They pull in and
 define only the exact code that you need.
 
 =head1 ERROR MESSAGES
@@ -96,20 +96,20 @@ This module may lead to some interesting error messages. Here's a reference.
 
 =item Unable to locate Perl CORE directory!
 
-This compile-time error will indicate that TCC::Perl was not able to find the
+This compile-time error will indicate that C::TinyCompiler::Perl was not able to find the
 CORE directory in your Perl libs. This is a big issue because the header files
-that TCC::Perl wants to include in your compiler context can only be found in
+that C::TinyCompiler::Perl wants to include in your compiler context can only be found in
 this directory. If you run into this problem, it means you do not have your
 Perl header files stored in a customary place. If you don't know how to fix
 this, you should reach out to me or to the Perl community (i.e. PerlMonks) for
 help.
 
-=item whatever comes after TCC::Perl
+=item whatever comes after C::TinyCompiler::Perl
 
 If you see anything with this text in it, you have encountered an error
 (probably a compile error) in code that you added to your compiler's Head
-section after you added the TCC::Perl package. Check any and all code that you
-added. Using L<TCC/line_numbers> may help narrow-down the errant line in your
+section after you added the C::TinyCompiler::Perl package. Check any and all code that you
+added. Using L<C::TinyCompiler/line_numbers> may help narrow-down the errant line in your
 code.
 
 =back
@@ -120,46 +120,42 @@ David Mertens, C<< <dcmertens.perl at gmail.com> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-tcc at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=TCC>.  I
-will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+Please report any bugs or feature requests at the project's main github page:
+L<http://github.com/run4flat/perl-TCC/issues>.
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc TCC::Perl
+    perldoc C::TinyCompiler::Perl
 
 You can also look for information at:
 
 =over 4
 
-=item * RT: CPAN's request tracker (report bugs here)
+=item * The Github issue tracker (report bugs here)
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=TCC>
+L<http://github.com/run4flat/perl-TCC/issues>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
-L<http://annocpan.org/dist/TCC>
+L<http://annocpan.org/dist/C-TinyCompiler>
 
 =item * CPAN Ratings
 
-L<http://cpanratings.perl.org/d/TCC>
+L<http://cpanratings.perl.org/d/C-TinyCompiler>
 
 =item * Search CPAN
 
-L<http://search.cpan.org/dist/TCC/>
+L<http://p3rl.org/C::TinyCompiler>
+L<http://search.cpan.org/dist/C-TinyCompiler/>
 
 =back
 
-
-=head1 ACKNOWLEDGEMENTS
-
-
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2012 Northwestern University
+Code copyright 2012 Northwestern University. Documentation copyright 2012-2013
+David Mertens.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
