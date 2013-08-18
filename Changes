@@ -1,5 +1,14 @@
-Revision history for TCC
+Put changes under the appropriate header. Headers can include API CHANGES, 
+DIFFERENT BEHAVIOR, BUG FIXES, DEPENDENCIES, ENHANCEMENTS, NEW FEATURES, and
+OTHER. Entries should be in chronological order, i.e. oldest at the top
 
-0.01    Date/time
-        First version, released on an unsuspecting world.
+0.01  DAY, MTH ##, 2013
 
+  Initial release!
+  
+  C::TinyCompiler::Perl remains untested, along with its brethren, apart from
+  ::Perl::Croak, which is tested and used by other packages.
+  
+  C::TinyCompiler::Callable works!
+  
+  C::TinyCompiler::StretchyBufer works!
