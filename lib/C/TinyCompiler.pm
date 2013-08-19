@@ -13,12 +13,12 @@ C::TinyCompiler - Full C JIT compiling using the Tiny C Compiler
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
 BEGIN {
-	our $VERSION = '0.01';
+	our $VERSION = '0.02';
 	use XSLoader;
 	XSLoader::load 'C::TinyCompiler', $VERSION;
 }

@@ -2,7 +2,13 @@ Put changes under the appropriate header. Headers can include API CHANGES,
 DIFFERENT BEHAVIOR, BUG FIXES, DEPENDENCIES, ENHANCEMENTS, NEW FEATURES, and
 OTHER. Entries should be in chronological order, i.e. oldest at the top
 
-0.01  DAY, MTH ##, 2013
+0.02  DAY, MMM ##, 2013
+
+  [OTHER]
+  
+  * Added tcc install instructions to the README (now) pod file.
+
+0.01  Sun, Aug 18, 2013
 
   Initial release!
   

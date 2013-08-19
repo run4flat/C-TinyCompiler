@@ -47,10 +47,9 @@ Devel::PPPort::WriteFile();
 #### --( Make the builder )-- ####
 
 my $builder = Module::Build->new(
-    module_name         => 'TCC',
+    module_name         => 'C::TinyCompiler',
     license             => 'perl',
     dist_author         => q{David Mertens <dcmertens.perl@gmail.com>},
-    dist_version_from   => 'lib/C/TinyCompiler.pm',
 	configure_requires => {
         'Devel::PPPort' => 0,
 	},
