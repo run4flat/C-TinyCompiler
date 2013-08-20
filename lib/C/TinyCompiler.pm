@@ -93,6 +93,47 @@ Compile C-code in memory at runtime.
          return to_return;
      }
  };
+ 
+ ## Interface with PDL data ##
+ 
+ $context = C::TinyCompiler->new('::Callable');
+ 
+ # Create a sequence of prime numbers:
+ $context->code('Body') = q{
+     C::TinyCompiler::Callable
+     void prime_sequence (int * output, int length) {
+         /* Always start with 2 */
+         output[0] = 2;
+         
+         int n_filled = 1;
+         int candidate = 3;
+         
+         while(n_filled < length) {
+             for (int divisor_idx = 0; divisor_idx < n_filled; divisor_idx++) {
+                 if (candidate % output[divisor_idx] == 0) goto NEXT_NUMBER;
+                 if (output[divisor_idx] * output[divisor_idx] > candidate) break;
+             }
+             output[n_filled] = candidate;
+             n_filled++;
+             
+             NEXT_NUMBER: candidate++;
+         }
+     }
+ };
+ 
+ # Compile our C code
+ $context->compile;
+ 
+ # Retrieve a subref to our function
+ my $prime_sequence = $context->get_callable_subref('prime_sequence');
+ 
+ # Allocate some memory for the operation
+ use PDL;
+ my $primes = zeroes(long, 20);
+ 
+ # Exercise the subref to create the first 20 primes
+ $prime_sequence->($primes->get_dataref, $primes->nelem);
+ print "First 20 primes are $primes\n";
 
 =head1 DESCRIPTION
 

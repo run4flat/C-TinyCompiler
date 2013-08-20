@@ -60,7 +60,6 @@ my $builder = Module::Build->new(
         'perl' => 5.010,
     },
 #    add_to_cleanup      => [ 'TCC-*'],
-    create_makefile_pl => 'traditional',
 	needs_compiler => 1,
 	include_dirs => [$include_dir, '.'],
 	extra_linker_flags => ["-L$lib_dir", '-ltcc'],
