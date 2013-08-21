@@ -2,11 +2,13 @@ Put changes under the appropriate header. Headers can include API CHANGES,
 DIFFERENT BEHAVIOR, BUG FIXES, DEPENDENCIES, ENHANCEMENTS, NEW FEATURES, and
 OTHER. Entries should be in chronological order, i.e. oldest at the top
 
-0.02  DAY, MMM ##, 2013
+0.03  DAY, MMM ##, 2013
 
-  [OTHER]
+0.02  Tue, Aug 20, 2013
+
+  [DEPENDENCIES]
   
-  * Added tcc install instructions to the README (now) pod file.
+  * C::TinyCompiler now depends on Alien::TinyCC
 
 0.01  Sun, Aug 18, 2013
 
