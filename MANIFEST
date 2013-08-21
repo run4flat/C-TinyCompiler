@@ -19,7 +19,7 @@ lib/C/TinyCompiler/Perl/Typedefs.pm
 lib/C/TinyCompiler/StretchyBuffer.pm
 MANIFEST			This list of files
 ppport.h
-README
+README.pod
 t/000-load.t
 t/010-new-and-destroy.t
 t/011-precompile-include.t
