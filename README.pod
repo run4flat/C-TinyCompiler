@@ -21,62 +21,18 @@ faster.
 
 =head1 INSTALLATION
 
-To begin, you will need to have a working copy of the Tiny C Compiler (i.e.
-tcc) in your path. To get that, visit
-L<http://download.savannah.gnu.org/releases/tinycc/>. I would like to
-wrap these install steps into an Alien module, but I just haven't gotten
-there yet.
+This module depends on L<Alien::TinyCC>, so you must install that first with
+something like:
 
-=head2 Linuxish TCC Installation
+ cpan Alien::TinyCC
+ cpanm Alien::TinyCC
 
-For unixish systems, including Mac and Cygwin, unzip the bz2 file and
-C<chdir> into directory. With an install prefix in mind, use the
-following configure:
-
-    # Linux (maybe other Unixen?)
-    ./configure --prefix=<install-location>
-    
-    # Cygwin
-    ./configure --enable-cygwin --prefix=<install-location>
-    
-    # Mac
-    ./configure --cpu=x86-64 --prefix=<install-location>
-
-Then follow the usual steps:
-
-    make
-    make install
-
-=head2 Windows Installation
-
-The Windows installation is a little trickier than I had hoped at the
-moment. Unfortunately, you must build from source, either by unpacking
-the .bz2 file or cloning from the git repo. Then C<chdir> into the
-F<win32> directory of the source tarball and run C<build-tcc>, a DOS
-batch script. When that completes, copy all of the files and
-subdirectories of F<win32> (except for the batch script and the readme
-file) into a directory that is in your C<%PATH%>. For example, if you
-are using Strawberry Perl and installed it to the conventional
-location, then F<C:\strawberry\c\bin> should be in your path. Thus you
-should copy the files there, and after copying you should have these
-files:
-
- C:\strawberry\c\bin\tcc.exe
- C:\strawberry\c\bin\libtcc.dll
- ...
- C:\strawberry\c\bin\include\inttypes.h
- ...
- C:\strawberry\c\bin\lib\libtcc1.a
- ...
-
-Unfortunately, installing froom the precompiled binaries doesn't quite
-work at the moment. Expect all of this to go away in the near future,
-hopefully by way of an C<Alien::TCC> package.
-
-=head2 Installing C::TinyCompiler
-
-To install this module, download the contents from the Github repo
-(L<https://github.com/run4flat/perl-TCC>) or from L<CPAN.org> and run:
+Once you have those installed, simply download the contents of this
+distribution from the Github repo (L<http://github.com/run4flat/perl-TCC>)
+or download and unpack the latest tarball from the Download link on the
+left of the distributions page at
+L<http://https://metacpan.org/module/C::TinyCompiler>. Once you have the
+code, run:
 
 	perl Build.PL
 	./Build
@@ -113,17 +69,18 @@ L<http://search.cpan.org/dist/C-TinyCompiler/>
 
 =back
 
-AUTHOR AND COPYRIGHT
+=head1 AUTHOR
 
-Written by David Mertens. Portions of this code are copyright 2011-2013
-Northwestern University. Portions of this code are copyright 2013
-Dickinson College.
+Written by David Mertens, C<< <dcmertens.perl at gmail.com> >>
 
-LICENSE
+=head1 LICENSE AND COPYRIGHT
+
+Portions of this code are copyright 2011-2013 Northwestern University.
+Portions of this code are copyright 2013 Dickinson College.
+Documentation copyright 2011-2013 David Mertens.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
 by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
-

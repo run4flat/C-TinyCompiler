@@ -1345,8 +1345,9 @@ little compiler that serves as the basis for this project!
 
 =head1 LICENSE AND COPYRIGHT
 
-Code copyright 2011-2012 Northwestern University. Documentation copyright
-2011-2013 David Mertens.
+Portions of this code are copyright 2011-2013 Northwestern University.
+Portions of this code are copyright 2013 Dickinson College.
+Documentation copyright 2011-2013 David Mertens.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
