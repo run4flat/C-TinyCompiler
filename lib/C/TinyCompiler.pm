@@ -4,6 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use Carp;
+use Alien::TinyCC;
 
 use warnings::register;
 
