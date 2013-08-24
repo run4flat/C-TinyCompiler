@@ -4,6 +4,10 @@ OTHER. Entries should be in chronological order, i.e. oldest at the top
 
 0.03  DAY, MMM ##, 2013
 
+  [BUG FIXES]
+  
+  * Differentiated between compiler warnings and errors.
+
 0.02  Tue, Aug 20, 2013
 
   [DEPENDENCIES]
