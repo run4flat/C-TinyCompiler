@@ -23,7 +23,7 @@ my $builder = Module::Build->new(
         'Test::More' => 0.88,
         'Alien::TinyCC' => 0,
         'Test::Exception' => 0,
-        'Test::Warnings' => 0,
+        'Test::Warn' => 0,
     },
     requires => {
         'perl' => 5.010,

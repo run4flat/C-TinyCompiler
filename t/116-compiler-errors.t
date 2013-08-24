@@ -18,7 +18,7 @@ throws_ok { $context->compile } qr/This is only a test/
 	=> 'Issues an exception when it encounters a preprocessor';
 
 ## Typo/compile-time error ##
-my $context = C::TinyCompiler->new;
+$context = C::TinyCompiler->new;
 $context->code('Body') .= q{
 	void some_func() {
 		/* No trailing semicolon, should throw error */

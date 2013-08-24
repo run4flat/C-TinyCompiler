@@ -245,11 +245,21 @@ sub new {
 }
 
 # Report errors if they crop-up:
-sub report_if_error {
+sub report_if_trouble {
 	my ($self, $to_say) = @_;
-	if (my $msg = $self->get_error_message) {
+	my $msg = $self->get_error_message;
+	
+	# Don't do anything if we have nothing to worry about.
+	return unless $msg;
+	
+	# Handle warnings more gently than errors:
+	if ($msg =~ /warning/) {
 		$to_say =~ s/MESSAGE/$msg/;
-		croak($to_say);
+		warnings::warnif('Warning ' . $to_say);
+	}
+	else {
+		$to_say =~ s/MESSAGE/$msg/;
+		croak('Error ' . $to_say);
 	}
 }
 
@@ -654,6 +664,8 @@ sub undefine {
 }
 
 =head2 code
+
+XXX THIS INTERFACE IS LIKELY TO CHANGE IN THE NEAR FUTURE XXX
 
 This lvalue sub lets you get, set, append to, and otherwise modify the contents
 of the code in each of three regions. Any value is allowed so long as the
@@ -1084,17 +1096,17 @@ sub compile {
 	my %defs = %{$self->{pp_defs}};
 	while (my ($name, $value) = each %defs) {
 		$self->_define($name, $value);
-		$self->report_if_error("Error defining preprocessor symbol [$name]: MESSAGE");
+		$self->report_if_trouble("defining preprocessor symbol [$name]: MESSAGE");
 	}
 	$self->_add_include_paths(@{$self->{include_paths}});
 	$self->_add_sysinclude_paths(@{$self->{sysinclude_paths}});
-	$self->report_if_error("Error adding include path(s): MESSAGE");
+	$self->report_if_trouble("adding include path(s): MESSAGE");
 	
 	# Add the library stuff:
 	$self->_add_library_paths(@{$self->{library_paths}});
-	$self->report_if_error("Error adding library path(s): MESSAGE");
+	$self->report_if_trouble("adding library path(s): MESSAGE");
 	$self->_add_libraries(@{$self->{libraries}});
-	$self->report_if_error("Error adding library(s): MESSAGE");
+	$self->report_if_trouble("adding library(s): MESSAGE");
 	
 	# Allow packages to perform any preprocessing they may want:
 	while (my ($package, $options) = each %{$self->{applied_package}}) {
@@ -1110,8 +1122,10 @@ sub compile {
 		$self->_compile($code);
 		1;
 	} or do {
-		# We ran into a problem! Report the compiler issue (as reported from
-		# the compiled line) if known:
+		# We ran into a problem! This exception will only get tripped if
+		# libtcc's compile function returned nonzero, which means there was
+		# an error. Warnings do not cause _compile to throw exceptions. So,
+		# report the compiler issue as reported from the compiled line:
 		my $message = $self->get_error_message;
 		if ($message) {
 			# Fix the rather terse line number notation:
@@ -1126,8 +1140,10 @@ sub compile {
 		
 		# Otherwise report an unknown compiler issue, indicating the line in the
 		# Perl script that called for the compile action:
-		croak("Unable to compile for unknown reasons");
+		croak("C::TinyCompiler weird internal error: Unable to compile for unknown reasons");
 	};
+	# Report any warnings
+	$self->report_if_trouble('compiling: MESSAGE');
 	
 	# Apply the pre-compiled symbols (function pointers, etc):
 	while (my ($package, $options) = each %{$self->{applied_package}}) {
@@ -1135,7 +1151,7 @@ sub compile {
 	}
 	# Apply any other symbols that were added:
 	$self->_add_symbols(%{$self->{symbols}});
-	$self->report_if_error("Error adding symbol(s): MESSAGE");
+	$self->report_if_trouble("adding symbol(s): MESSAGE");
 
 	# Relocate
 	eval {
@@ -1143,9 +1159,9 @@ sub compile {
 		1;
 	} or do {
 		# We ran into a problem! Report the relocation issue, if known:
-		$self->report_if_error("Unable to relocate: MESSAGE");
+		$self->report_if_trouble("relocating: MESSAGE");
 		# Report an unknown relocation issue if not known:
-		croak("Unable to relocate for unknown reasons");
+		croak("C::TinyCompiler weird internal error: Unable to relocate for unknown reasons");
 	};
 	
 	# Mark the compiler as post-compile

@@ -135,7 +135,7 @@ _compile(state, code)
 	CODE:
 		/* Compile and croak if error */
 		int ret = tcc_compile_string(state, code);
-		if (ret != 0) croak("Compile error\n");
+		if (ret != 0) croak("Something fishy happened\n");
 
 void
 _add_symbols(state, ...)
