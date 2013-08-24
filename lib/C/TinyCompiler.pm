@@ -227,6 +227,16 @@ sub new {
 		pp_defs => {},
 	};
 	
+	# Add Mac typedefs:
+	$self->{Head} = line_number(__LINE__) . q{
+		/* http://comments.gmane.org/gmane.comp.compilers.tinycc.devel/325 */
+		typedef unsigned short __uint16_t, uint16_t;
+		typedef unsigned int __uint32_t, uint32_t;
+		typedef unsigned long __uint64_t, uint64_t;
+		
+		#line 1 "whatever comes after Mac typedefs"
+	} if $^O =~ /darwin/;
+	
 	# Process any packages:
 	$self->apply_packages(@_);
 	

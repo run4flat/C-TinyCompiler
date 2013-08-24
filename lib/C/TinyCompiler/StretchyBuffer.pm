@@ -12,9 +12,6 @@ sub apply {
 	# Add the stretchy buffer code
 	$state->code('Head') .= C::TinyCompiler::line_number(__LINE__) . q{
 	
-		/* Need this so things work correctly on Mac */
-		#define _ANSI_SOURCE
-		
 		#define sbfree(a)         ((a) ? free(stb__sbraw(a)),0 : 0)
 		#define sbpush(a,v)       (stb__sbmaybegrow(a,1), (a)[stb__sbn(a)++] = (v))
 		#define sbpop(a)          ((a && stb__sbn(a)) ? (a)[--stb__sbn(a)] : 0)
