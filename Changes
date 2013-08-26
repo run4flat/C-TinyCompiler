@@ -2,11 +2,24 @@ Put changes under the appropriate header. Headers can include API CHANGES,
 DIFFERENT BEHAVIOR, BUG FIXES, DEPENDENCIES, ENHANCEMENTS, NEW FEATURES, and
 OTHER. Entries should be in chronological order, i.e. oldest at the top
 
-0.03  DAY, MMM ##, 2013
+0.03  Mon, Aug 26, 2013
 
+  [DEPENDENCIES] 
+  
+  * Added Alien::TinyCC at the specific version v0.03
+  
+  * For testing, we now depend on Test::Exception and Test::Warn.
+  
   [BUG FIXES]
   
-  * Differentiated between compiler warnings and errors.
+  * Differentiated between compiler warnings and errors. Still doesn't handle
+    multiple warnings properly, though.
+  
+  [OTHER]
+  
+  * Build.PL indicates the proper repository and bug tracker, and indicates that
+    README.pod should not be indexed. Hopefully that solves the issue of the
+    REAMDE being shown instead of the module's documentation on MetaCPAN.
 
 0.02  Tue, Aug 20, 2013
 

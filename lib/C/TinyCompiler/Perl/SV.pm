@@ -4,7 +4,7 @@ use warnings;
 use parent 'C::TinyCompiler::package';
 
 BEGIN {
-	our $VERSION = '0.02';
+	our $VERSION = '0.03';
 	use XSLoader;
 	XSLoader::load 'C::TinyCompiler::Perl::SV', $VERSION;
 }
