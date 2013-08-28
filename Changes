@@ -7,6 +7,9 @@ OTHER. Entries should be in chronological order, i.e. oldest at the top
   [OTHER]
   
   * Removed silly author tests.
+  
+  * Added git commit hook to check for updates to the Changes file. Hopefully
+    this document will be more accurate moving forward. :-)
 
 0.03  Mon, Aug 26, 2013
 

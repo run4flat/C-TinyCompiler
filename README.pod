@@ -39,6 +39,22 @@ code, run:
 	./Build test
 	./Build install
 
+=head1 DEVELOPMENT
+
+Current development for C::TinyCompiler is hosted on github. To get the latest 
+work, just clone the repo:
+
+ git clone https://github.com/run4flat/perl-TCC.git
+
+Since I have a hard time keeping the F<Changes> file up-to-date, I wrote a git 
+pre-commit hook that checks that I updated the Changes file and double-checks 
+with me in case I did not. This hook is included in the repo. To enable it in 
+your clone, just copy the hook to your F<.git/hooks/> directory like so:
+
+ # Optional; helps keep the Changes file up-to-date
+ cp git-commit-hook.pl .git/hooks/pre-commit    # Unixen
+ copy git-commit-hook.pl .git/hooks/pre-commit  # Windows
+
 =head1 SUPPORT AND DOCUMENTATION
 
 After installing, you can find documentation for this module with the
