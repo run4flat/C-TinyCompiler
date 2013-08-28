@@ -35,9 +35,6 @@ t/185-TCC-Callable.t
 t/200-Perl-Croak.t
 t/201-Stretchy-Buffers.t
 t/260-Perl-vs-Croak.t
-t/manifest.t
-t/pod-coverage.t
-t/pod.t
 t/README
 typemap
 META.yml
