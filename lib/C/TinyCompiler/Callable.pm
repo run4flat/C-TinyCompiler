@@ -5,7 +5,7 @@ use parent 'C::TinyCompiler::package';
 use Carp;
 
 BEGIN {
-	our $VERSION = '0.03_01';
+	our $VERSION = '0.04';
 	use XSLoader;
 	XSLoader::load 'C::TinyCompiler::Callable', $VERSION;
 }
