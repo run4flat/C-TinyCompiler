@@ -10,6 +10,8 @@ OTHER. Entries should be in chronological order, i.e. oldest at the top
   
   * Added git commit hook to check for updates to the Changes file. Hopefully
     this document will be more accurate moving forward. :-)
+  
+  * Added support for Travis CI.
 
 0.03  Mon, Aug 26, 2013
 
