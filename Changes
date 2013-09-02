@@ -4,6 +4,10 @@ OTHER. Entries should be in chronological order, i.e. oldest at the top
 
 0.04  DDD, MMM ##, 2013
 
+  [DEPENDENCIES] 
+  
+  * Added Alien::TinyCC at the specific version v0.05
+  
   [OTHER]
   
   * Removed silly author tests.

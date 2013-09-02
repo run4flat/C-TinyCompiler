@@ -17,17 +17,17 @@ my $builder = Module::Build->new(
     dist_author         => q{David Mertens <dcmertens.perl@gmail.com>},
 	configure_requires => {
         'Devel::PPPort' => 0,
-        'Alien::TinyCC' => 0.03,
+        'Alien::TinyCC' => 0.05,
 	},
     build_requires => {
         'Test::More' => 0.88,
-        'Alien::TinyCC' => 0.03,
+        'Alien::TinyCC' => 0.05,
         'Test::Exception' => 0,
         'Test::Warn' => 0,
     },
     requires => {
         'perl' => 5.010,
-        'Alien::TinyCC' => 0.03,
+        'Alien::TinyCC' => 0.05,
     },
 	needs_compiler => 1,
 	dynamic_config => 1,
