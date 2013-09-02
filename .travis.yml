@@ -4,3 +4,7 @@ perl:
   - "5.14"
   - "5.12"
   - "5.10"
+
+before_install:
+  - cpanm git://github.com/run4flat/Alien-TinyCC.git
+  - cpanm --installdeps --notest .
