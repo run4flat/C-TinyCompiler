@@ -52,8 +52,8 @@ with me in case I did not. This hook is included in the repo. To enable it in
 your clone, just copy the hook to your F<.git/hooks/> directory like so:
 
  # Optional; helps keep the Changes file up-to-date
- cp git-commit-hook.pl .git/hooks/pre-commit    # Unixen
- copy git-commit-hook.pl .git/hooks/pre-commit  # Windows
+ cp git-pre-commit-hook.pl .git/hooks/pre-commit    # Unixen
+ copy git-pre-commit-hook.pl .git/hooks/pre-commit  # Windows
 
 =head1 SUPPORT AND DOCUMENTATION
 
