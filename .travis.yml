@@ -6,6 +6,7 @@ perl:
   - "5.10"
 
 before_install:
+  - mv .git foo
   - mkdir alien-tcc
   - cd alien-tcc
   - git clone git://github.com/run4flat/Alien-TinyCC.git
@@ -13,4 +14,5 @@ before_install:
   - cpanm --install --notest .
   - cd ..
   - rm -rf alien-tcc
+  - mv foo .git
   - cpanm --installdeps --notest .
