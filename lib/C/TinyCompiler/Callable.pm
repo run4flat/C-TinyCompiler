@@ -336,6 +336,8 @@ sub build_Perl_invoker {
 	# unpacked on the Perl side, in the same order as the C function
 	# definition.
 	my $arg_list_string = '$' . join(', $', @{$funchash->{arg_names}});
+	my $sub_unpack_string = "my ($arg_list_string) = \@_";
+	$sub_unpack_string = '' if $arg_list_string eq '$';
 	my $N_args = scalar(@{$funchash->{arg_names}});
 	my $invoker_name = '_' . $funchash->{name} . '_invoker';
 	my $pack_string = '';
@@ -346,7 +348,7 @@ sub build_Perl_invoker {
 			# Make sure we have enough arguments
 			croak('$function_name expects $N_args arguments')
 				unless \@_ == $N_args;
-			my ($arg_list_string) = \@_;
+			$sub_unpack_string;
 			
 			# Build the list of values to pack. Arguments are packed in order
 			# of descending size in bytes, not necessarily the specified
