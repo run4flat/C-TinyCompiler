@@ -88,6 +88,22 @@ my $C_sum = $my_sum->(\$doubles_buffer, scalar(@values));
 ok(abs($C_sum - $sum) / abs($sum) < 1e-5, 'Handles pointers correctly')
 	or diag("Got C-sum of $C_sum and Perl-sum of $sum");
 
+#######################################
+# Check that void argument lists work #
+#######################################
+
+note('Void argument lists');
+$context = C::TinyCompiler->new('::Callable');
+$context->code('Body') = q{
+	C::TinyCompiler::Callable
+	int good_to_go () {
+		return 1;
+	}
+};
+$context->compile;
+my $ok_func = $context->get_callable_subref('good_to_go');
+ok($ok_func->(), 'void arg lists are handled correctly');
+
 ###########################################
 # Check that we get useful error messages #
 ###########################################
