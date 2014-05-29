@@ -946,8 +946,8 @@ sub is_package_blocked {
 
 sub is_package_known {
 	my ($self, $package) = @_;
-	return $self->is_package_applied($package)
-		|| $self->is_package_blocked($package);
+	return ($self->is_package_applied($package)
+		or $self->is_package_blocked($package));
 }
 
 =head2 block_package
@@ -1297,7 +1297,7 @@ whether they are operating pre-compile, post-compile, or during compile.
 
 sub is_compiling {
 	my $self = shift;
-	return exists $self->{_state} && !$self->{has_compiled};
+	return (exists $self->{_state} and not $self->{has_compiled});
 }
 
 =head2 has_compiled
