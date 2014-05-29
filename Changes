@@ -7,6 +7,11 @@ OTHER. Entries should be in chronological order, i.e. oldest at the top
   [BUGS]
   
   * Fixed Callable's broken handling of void argument lists.
+  
+  * Boolean precedent was not being handled correctly. Since Perl always
+    returns the last evaluated statement, this wasn't actually a problem.
+    However, if any new code was added, it would be, so Perl 5.20 started to
+    warn. That broke tests. Precedence is fixed and everything works again.
 
 0.04  Mon, Sep 1, 2013
 
