@@ -5,7 +5,7 @@
 use 5.006;
 use strict;
 use warnings;
-use Test::More tests => 26;
+use Test::More tests => 32;
 
 use inc::Capture;
 
@@ -240,6 +240,66 @@ eval {
 
 eval {
 	$context2->call_void_function('print_hello2');
+	1;
+} or do {
+	print "Could not call print_hello2\n";
+};
+
+# Destroy the first context
+eval {undef($context1) };
+print "Destroyed first context\n";
+
+eval {undef($context2)};
+print "Destroyed second context\n";
+
+TEST_CODE
+
+like($results, qr/Finished first compile/, 'Completed first compile');
+like($results, qr/Finished second compile/, 'Completed second compile');
+like($results, qr/Hello1 from TCC/, 'Call function from first compile');
+like($results, qr/Hello2 from TCC/, 'Call function from second compile');
+like($results, qr/Destroyed first context/, 'Safely destroy first context');
+like($results, qr/Destroyed second context/, 'Safely destroy second context');
+
+############## two contexts, compile-compile-call-call-destroy-destroy: 6
+note('two contexts, same function name, compile-compile-call-call-destroy-destroy');
+
+$results = Capture::it(<<'TEST_CODE');
+use strict;
+use warnings;
+use C::TinyCompiler;
+# Autoflush
+$|++;
+
+# Build the context with some simple code:
+my $context1 = C::TinyCompiler->new;
+$context1->code('Body') = q{
+	void print_hello() {
+		printf("Hello1 from TCC\n");
+	}
+};
+$context1->compile;
+print "Finished first compile\n";
+
+my $context2 = C::TinyCompiler->new;
+$context2->code('Body') = q{
+	void print_hello() {
+		printf("Hello2 from TCC\n");
+	}
+};
+$context2->compile;
+print "Finished second compile\n";
+
+# Call the two compiled functions:
+eval {
+	$context1->call_void_function('print_hello');
+	1;
+} or do {
+	print "Could not call print_hello1\n";
+};
+
+eval {
+	$context2->call_void_function('print_hello');
 	1;
 } or do {
 	print "Could not call print_hello2\n";
