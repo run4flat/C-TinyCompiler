@@ -28,6 +28,16 @@ sub apply {
 	# Add Perl's CORE directory to the compiler's list of includes:
 	$state->add_include_paths($core_dir, @local_inc);
 	
+	if ($^O =~ /MSWin/) {
+		$state->code('Head') .= C::TinyCompiler::line_number(__LINE__) . q{
+			#define __C89_NAMELESS __extension__
+			#define __MINGW_EXTENSION __extension__
+			typedef long __int64;
+			typedef int uid_t;
+			typedef int gid_t;
+		};
+	}
+	
 	# Add function declarations and symbols:
 	$state->code('Head') .= C::TinyCompiler::line_number(__LINE__) . q{
 		#include "EXTERN.h"
@@ -165,5 +175,3 @@ See http://dev.perl.org/licenses/ for more information.
 
 
 =cut
-
-
