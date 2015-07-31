@@ -372,14 +372,11 @@ sub build_Perl_invoker {
 		# finally normal values. XXX make this more extensible!!!
 		if ($arg_type =~ /SV\s*[*](?=$|[^*])/) {  # SV *
 			$funchash->{subref_string} .= C::TinyCompiler::line_number(__LINE__) . "
-				# SV * allows for custom handling; otherwise it must
-				# be a reference!
-				croak('Argument for $arg_name must be a refrence!')
-					unless ref($arg_name);
+				# SV * allows for custom handling
 				push \@to_pack,
 					eval { ${arg_name}->can('pack_as') }
 					? ${arg_name}->pack_as('$arg_type')
-					: Scalar::Util::refaddr($arg_name);
+					: Scalar::Util::refaddr(\\$arg_name);
 				";
 		}
 		elsif ($arg_type =~ /\*/) {  # other pointers
