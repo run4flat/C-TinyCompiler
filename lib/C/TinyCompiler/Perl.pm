@@ -36,6 +36,9 @@ sub apply {
 			typedef int uid_t;
 			typedef int gid_t;
 		};
+		# Also add Perl's library to the compiler's lib list
+		$state->add_library_paths("$Config{archlib}/CORE");
+		$state->add_librarys('perl');
 	}
 	
 	# Add function declarations and symbols:
