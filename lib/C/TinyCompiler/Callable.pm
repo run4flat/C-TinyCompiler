@@ -372,11 +372,14 @@ sub build_Perl_invoker {
 		# finally normal values. XXX make this more extensible!!!
 		if ($arg_type =~ /SV\s*[*](?=$|[^*])/) {  # SV *
 			$funchash->{subref_string} .= C::TinyCompiler::line_number(__LINE__) . "
-				# SV * allows for custom handling
+				# SV * allows for custom handling; otherwise it must
+				# be a reference!
+				croak('Argument for $arg_name must be a refrence!')
+					unless ref($arg_name);
 				push \@to_pack,
 					eval { ${arg_name}->can('pack_as') }
 					? ${arg_name}->pack_as('$arg_type')
-					: Scalar::Util::refaddr(\\$arg_name);
+					: Scalar::Util::refaddr($arg_name);
 				";
 		}
 		elsif ($arg_type =~ /\*/) {  # other pointers
@@ -626,6 +629,37 @@ pointer:
  my $sum = $sum_data->($data_ptr, $length);
  #                     ^
  # No reference!       |
+
+=head2 Directly Passing an SV *
+
+It may be that you want to write a function that directly manipulates 
+an C<SV*>. For such a task, using XS::TCC is probably the better 
+TCC-related tool for this job. You can use C::TinyCompiler, though. 
+First, you will need to include C<C::TinyCompiler::Perl> in your compiler
+context. Then, your C function will have an C<SV*> in the argument list:
+
+ $context = C::TinyCompiler->new('::Perl', '::Callable');
+ $context->code('Body') = q{
+ C::TinyCompiler::Callable
+     void my_set_IV (SV * a, int b) {
+         sv_setiv(a, b);
+     }
+ };
+ $context->compile;
+
+Finally, when calling the function, I<you must pass a reference to the
+scalar that you want sent to the function>:
+
+ my $my_set_IV = $context->get_callable_subref('my_set_IV');
+ my $to_set;
+ 
+ # Set variable to 10
+ $my_set_IV->(\$to_set, 10);
+
+I know, this is annoying, but I couldn't find a way to get the original 
+SV to the C function. And if we can't get the original SV to the C 
+function, then the C function wouldn't be able to make any 
+modifications to the SV. And what's the fun in that?
 
 =head2 Working with Perl-level objects
 
