@@ -17,7 +17,7 @@ dynamically generate machine code. Perl's bytecode is fast, of course, but for
 certain numerical work, this can lead to operations that are orders of magnitude
 faster.
 
-(Though, admitedly, I don't yet have the benchmarks to prove my point.)
+(Though, admittedly, I don't yet have the benchmarks to prove my point.)
 
 =head1 INSTALLATION
 
